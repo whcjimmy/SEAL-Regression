@@ -5,7 +5,6 @@ bin/*
 *.dat
 *.html
 *.p
-*.py
 *.exe
 *.txt
 *_copy.csv
