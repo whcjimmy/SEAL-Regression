@@ -27,6 +27,7 @@ def GD(training_x, training_y, learning_rate, iteration_times):
 def ploy_GD(training_x, training_y, weights, learning_rate, iteration_times):
     data_size = len(training_x)
     data_dimension = len(training_x[0])
+    weights = [-0.81562 / (8 ** 3), 0, 1.20096 / 8, 0.5]
     poly = np.poly1d(weights)
     W = np.zeros(data_dimension)
     accuracy = []
@@ -49,6 +50,7 @@ def ploy_GD_2(training_x, training_y, weights, learning_rate, iteration_times):
     data_dimension = len(training_x[0])
     poly = np.poly1d(weights)
     W = np.zeros(data_dimension)
+    # W = np.random.uniform(-1, 1, data_dimension)
     weights.reverse()
     accuracy = []
     for _ in range(iteration_times):
@@ -89,7 +91,6 @@ def test_lr(W, data):
     testing_x = data['testing_x']
     testing_y = data['testing_y']
     avg_in = util.avg_lr(W, training_x, training_y)
-    # pdb.set_trace()
     avg_out = util.avg_lr(W, testing_x, testing_y)
     print("avg_in = %.3f avg_out = %.3f " % (avg_in, avg_out))
 

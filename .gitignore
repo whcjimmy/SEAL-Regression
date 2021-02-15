@@ -8,6 +8,7 @@ bin/*
 *.exe
 *.txt
 *_copy.csv
+*.png
 .vscode
 !.vscode/settings.json
 !.vscode/tasks.json

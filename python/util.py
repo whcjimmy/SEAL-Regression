@@ -3,6 +3,21 @@ import json
 import numpy as np
 from sklearn.datasets import load_breast_cancer
 
+def read_lbw():
+    data = {}
+    with open('./datasets/logistic/lowbwt.dat') as f:
+        ff = [x.rstrip() for x in f.readlines()]
+        ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
+        ff = np.array(ff)
+        np.random.shuffle(ff)
+    samples = np.delete(ff, [0, 1], axis = 1)
+    labels = np.array([1 if x == 1 else -1 for x in ff[:, 1]])
+    data['training_x'] = samples
+    data['training_y'] = labels
+    data['testing_x'] = samples
+    data['testing_y'] = labels
+
+    return data
 
 def read_pulsar_stars():
     data = {}
@@ -11,7 +26,7 @@ def read_pulsar_stars():
         ff = ff[1:]
         ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
         ff = np.array(ff)
-        # np.random.shuffle(ff)
+        np.random.shuffle(ff)
     samples = ff[:, :-1]
     labels = ff[:, -1]
     data['training_x'] = samples
@@ -109,9 +124,9 @@ def sigmoid(data, label, model):
 
 def avg_lr(W, data, labels):
     pred = np.dot(data, W.T)
-    return np.mean(np.sign(pred) != labels)
+    return np.mean(np.sign(pred) == labels)
 
 
 def avg_kernel(beta, K, labels):
     pred = np.dot(K.T, beta)
-    return np.mean(np.sign(pred) != labels)
+    return np.mean(np.sign(pred) == labels)

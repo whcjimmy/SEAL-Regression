@@ -6,13 +6,16 @@ import itertools
 import numpy as np
 from scipy import stats
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import SGDClassifier
+from sklearn.linear_model import LogisticRegression
 
 # Load Datasets
-# data = util.read_banknote()
+data = util.read_banknote()
 # data = util.read_load_breast_cancer()
 # data = util.read_data_hw2('hw2_lssvm_all.dat')
 # data = util.read_data_hw3('./hw3_train.dat', './hw3_test.dat')
 # data = util.read_pulsar_stars() # use Z-score Standardization
+# data = util.read_lbw() # use Z-score Standardization
 
 training_x = data['training_x']
 training_y = data['training_y']
@@ -41,30 +44,35 @@ data['training_x'] = training_x
 data['testing_x'] = testing_x
 
 
-# Load Weights
+#Original Load Weights
 weights_dict = util.read_weight('./weights.out')
 
 # Parameters Settings
 learning_rate = 0.01
-iteration_times = 10
+iteration_times = 20
 
 # Logistic Regression
 print('---------- Logistic Regression ----------')
+print('Sklearn Logistic Regression')
+clf = LogisticRegression(random_state=0).fit(training_x, training_y)
+print(clf.score(training_x, training_y), clf.score(testing_x, testing_y))
+print('Sklearn SGD Classifier')
+clf = SGDClassifier(alpha = 10 * learning_rate).fit(training_x, training_y)
+print(clf.score(training_x, training_y), clf.score(testing_x, testing_y))
 print('Original')
 W = LR.GD(training_x, training_y, learning_rate, iteration_times)
 LR.test_lr(W, data)
 
 # Polynomial Logistic Regression
-for deg in range(3, 11, 6):
-    '''
+for deg in range(3, 11, 4):
     W = LR.ploy_GD(training_x, training_y, weights_dict[str(deg)], learning_rate, iteration_times)
-    print('degree = ', deg,)
+    print('Poly degree = ', deg,)
     LR.test_lr(W, data)
     '''
-
     W = LR.ploy_GD_2(training_x, training_y, weights_dict[str(deg)], learning_rate, iteration_times)
     print('degree = ', deg,)
     LR.test_lr(W, data)
+    '''
 
 # KERNELS
 gamma_list = [32, 2, 0.125]

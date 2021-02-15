@@ -528,6 +528,10 @@ int main()
 
     // Print Accuracy
     cout << "\nACCURACY\n-------------------" << endl;
+    vector<float> predictions = predict(features, new_weights);
+    double acc = accuracy(predictions, labels);
+    cout << acc << endl;
+
     
     return 0;
 }
