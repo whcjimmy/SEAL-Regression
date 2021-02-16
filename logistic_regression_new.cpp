@@ -219,7 +219,7 @@ int main()
     // Init features, labels and weights
     // Init features (rows of f_matrix , cols of f_matrix - 1)
     int rows = f_matrix.size();
-    // rows = 100;
+    rows = 100;
     cout << "\nNumber of rows  = " << rows << endl;
     int cols = f_matrix[0].size() - 1;
     cout << "\nNumber of cols  = " << cols << endl;
@@ -273,8 +273,9 @@ int main()
 
     vector<double> coeffs = {0.50101, 0.12669, -0.00005, -0.0009};
     double learning_rate = 0.01;
+    int iter_times = 15;
     
-    // Calculate gradient descents in plaintext domain
+    // Calculate gradient descents in the plaintext domain
     vector<double> w(cols);
     vector<double> delta_w(cols, 0.0);
 
@@ -282,7 +283,7 @@ int main()
         w[i] = weights[i];
     }
 
-    for(int iter = 0; iter < 10; iter++) {
+    for(int iter = 0; iter < iter_times; iter++) {
         for(int i = 0; i < rows; i++) {
             double w_x = 0.0;
             double tmp = 0.0;
@@ -292,7 +293,7 @@ int main()
             }
 
             for(int j = 0; j < poly_deg; j++) {
-                tmp = coeffs[j] * pow(labels[i], j + 1) / rows;
+                tmp = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
                 tmp = tmp * pow(w_x, j);
                 for(int k = 0; k < cols; k++) {
                     delta_w[k] += tmp * standard_features[i][k];
@@ -313,6 +314,7 @@ int main()
     }
 
 
+    // Calculate gradient descents in the encrypted domain
 
     // --------------- ENCODING ----------------
     cout << "ENCODING......\n";
@@ -335,9 +337,19 @@ int main()
     cout << "CALCULATING......\n";
     vector<Ciphertext> features_cipher(rows);  // x
     for(int i = 0; i < rows; i++) {
-        // x
         evaluator.rotate_vector(features_B_cipher[i], -col_A, gal_keys, features_cipher[i]);
         evaluator.add_inplace(features_cipher[i], features_A_cipher[i]);
+        /*
+        Plaintext x_plain;
+        vector<double> x_decode;
+        decryptor.decrypt(features_cipher[i], x_plain);
+        ckks_encoder.decode(x_plain, x_decode);
+
+        for(int j = 0; j < cols; j++) {
+            cout << standard_features[i][j] << " " << x_decode[j] << " ";
+        }
+        cout << endl;
+        */
     }
 
     double one = 1;
@@ -348,7 +360,7 @@ int main()
 
     double alpha;
     Plaintext alpha_plain, weights_plain;
-    Ciphertext x_cipher, weights_features_cipher;
+    Ciphertext x_cipher, weights_features_cipher, delta_w_all_cipher;
     vector<Ciphertext> delta_w_cipher(rows);
     vector<Ciphertext> wx_powers_cipher(poly_deg);
     // used when decoding
@@ -359,7 +371,7 @@ int main()
     chrono::microseconds time_diff;
     time_start = chrono::high_resolution_clock::now();
 
-    for(int iter = 0; iter < 10; iter++) {
+    for(int iter = 0; iter < iter_times; iter++) {
         cout << "iter " << iter << endl;
         ckks_encoder.encode(weights, scale, weights_plain);
         for(int i = 0; i < rows; i++) {
@@ -394,7 +406,6 @@ int main()
             evaluator.add_many(wx_powers_cipher, delta_w_cipher[i]);
         }
 
-        Ciphertext delta_w_all_cipher;
         evaluator.add_many(delta_w_cipher, delta_w_all_cipher);
 
 
@@ -412,6 +423,32 @@ int main()
     time_end = chrono::high_resolution_clock::now();
     time_diff = chrono::duration_cast<chrono::microseconds>(time_end - time_start);
     cout << rows << " total execution time :\t" << time_diff.count() << " microseconds" << endl;
+
+    // acuracy
+    double acc_1 = 0.0, acc_2 = 0.0;
+    for(int i = 0; i < rows; i++) {
+        double tmp_1 = 0.0, tmp_2 = 0.0;
+        for(int j = 0; j < cols; j++) {
+            tmp_1 += w[j] * standard_features[i][j];
+            tmp_2 += weights[j] * standard_features[i][j];
+        }
+        if(tmp_1 >= 0) {
+            tmp_1 = 1;
+        } else {
+            tmp_1 = -1;
+        }
+
+        if(tmp_2 >= 0) {
+            tmp_2 = 1;
+        } else {
+            tmp_2 = -1;
+        }
+
+        if(tmp_1 == labels[i]) acc_1 += 1;
+        if(tmp_2 == labels[i]) acc_2 += 1;
+    }
+    cout << "acc 1 " << acc_1 / rows << endl;
+    cout << "acc 2 " << acc_2 / rows << endl;
 
     return 0;
 }
