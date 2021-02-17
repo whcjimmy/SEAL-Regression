@@ -122,6 +122,45 @@ vector<vector<double>> standard_scaler(vector<vector<double>> input_matrix)
     return result_matrix;
 }
 
+// Min Max Scaler
+vector<vector<double>> minmax_scaler(vector<vector<double>> input_matrix)
+{
+    int rowSize = input_matrix.size();
+    int colSize = input_matrix[0].size();
+    vector<vector<double>> result_matrix(rowSize, vector<double>(colSize));
+
+    // Optimization: Get Means and Standard Devs first then do the scaling
+    // first pass: get means and standard devs
+    vector<double> means_vec(colSize);
+    vector<double> stdev_vec(colSize);
+    for (int i = 0; i < colSize; i++)
+    {
+        vector<double> column(rowSize);
+        for (int j = 0; j < rowSize; j++)
+        {
+            // cout << input_matrix[j][i] << ", ";
+            column[j] = input_matrix[j][i];
+            // cout << column[j] << ", ";
+        }
+
+        means_vec[i] = getMean(column);
+        stdev_vec[i] = getStandardDev(column, means_vec[i]);
+        // cout << "MEAN at i = " << i << ":\t" << means_vec[i] << endl;
+        // cout << "STDV at i = " << i << ":\t" << stdev_vec[i] << endl;
+    }
+
+    // second pass: scale
+    for (int i = 0; i < rowSize; i++)
+    {
+        for (int j = 0; j < colSize; j++)
+        {
+            result_matrix[i][j] = (input_matrix[i][j] - means_vec[j]) / stdev_vec[j];
+            // cout << "RESULT at i = " << i << ":\t" << result_matrix[i][j] << endl;
+        }
+    }
+
+    return result_matrix;
+}
 int main()
 {
     int poly_modulus_degree = 16384;
@@ -212,7 +251,7 @@ int main()
     // Init features, labels and weights
     // Init features (rows of f_matrix , cols of f_matrix - 1)
     int rows = f_matrix.size();
-    rows = 10;
+    rows = 100;
     cout << "\nNumber of rows  = " << rows << endl;
     int cols = f_matrix[0].size() - 1;
     cout << "\nNumber of cols  = " << cols << endl;
@@ -221,7 +260,7 @@ int main()
     // Init labels (rows of f_matrix)
     vector<double> labels(rows);
     // Init weight vector with zeros (cols of features)
-    vector<double> weights(cols);
+    vector<double> beta(rows);
 
     // Fill the features matrix and labels vector
     for (int i = 0; i < rows; i++) {
@@ -232,11 +271,9 @@ int main()
     }
 
     // Fill the weights with random numbers (from 1 - 2)
-    for (int i = 0; i < cols; i++)
+    for (int i = 0; i < rows; i++)
     {
-        // weights[i] = 1;
-        weights[i] = RandomFloat(-2, 2) + 0.00000001;
-        // cout << "weights[i] = " << weights[i] << endl;
+        beta[i] = RandomFloat(-1, 1) + 0.00000001;
     }
 
     vector<vector<double>> standard_features = standard_scaler(features);
@@ -249,61 +286,92 @@ int main()
     int col_A = 3;
     int col_B = cols - col_A;
 
-    vector<vector<double>> features_A(rows, vector<double>(col_A));
-    vector<vector<double>> features_B(rows, vector<double>(col_B));
+    vector<vector<double>> kernel(rows, vector<double>(rows));
+    vector<vector<double>> kernel_A(rows, vector<double>(rows));
+    vector<vector<double>> kernel_B(rows, vector<double>(rows));
 
-    // calculate features_A
+    // init to 0
     for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < col_A; j++) { 
-                features_A[i][j] = standard_features[i][j];
+        for (int j = 0; j < rows; j++) { 
+            kernel_A[i][j] = 0;
+            kernel_B[i][j] = 0;
         }
     }
 
-    // calculate features_B
+    // -------- LINEAR KERNEL --------
+    cout << " -------- LINEAR KERNEL -------- " << endl;
+    // calculate kernel_A
     for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < col_B; j++) { 
-                features_B[i][j] = standard_features[i][col_A + j];
+        for (int j = 0; j < rows; j++) { 
+            for(int k = 0; k < col_A; k++) { 
+                kernel_A[i][j] += 
+                    standard_features[i][k] * standard_features[j][k] + 0.00000001;
+            }
         }
     }
+
+    // calculate kernel_B
+    for(int i = 0; i < rows; i++) {
+        for (int j = 0; j < rows; j++) { 
+            for(int k = 0; k < col_B; k++) { 
+                kernel_B[i][j] += 
+                    standard_features[i][col_A + k] * standard_features[j][col_A + k] + 0.00000001;
+            }
+        }
+    }
+
+    // Combine two kernels together
+    for(int i = 0; i < rows; i++) {
+        for (int j = 0; j < rows; j++) { 
+            kernel[i][j] = kernel_A[i][j] + kernel_B[i][j];
+            // cout << kernel[i][j] << " ";
+        }
+        // cout << endl;
+    }
+
+    // -------- Polynomial KERNEL --------
+    // cout << " -------- Polynomial KERNEL -------- " << endl;
+
+    // -------- RBF KERNEL --------
+    // cout << " -------- RBF KERNEL -------- " << endl;
+
 
     vector<double> coeffs = {0.50101, 0.12669, -0.00005, -0.0009};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
-    double learning_rate = 0.01;
+    double learning_rate = 0.0001;
     int iter_times = 15;
     
     // Calculate gradient descents in the plaintext domain
-    vector<double> w(cols);
-    vector<double> delta_w(cols, 0.0);
-
-    for(int i = 0; i < cols; i++) {
-        w[i] = weights[i];
-    }
+    vector<double> delta_beta(rows, 0.0);
+    vector<double> reg_term(rows, 0.0);
 
     for(int iter = 0; iter < iter_times; iter++) {
         for(int i = 0; i < rows; i++) {
-            double w_x = 0.0;
+            double b_k = 0.0;
             double tmp = 0.0;
 
-            for(int j = 0; j < cols; j++) {
-                w_x += w[j] * standard_features[i][j];
+            for(int j = 0; j < rows; j++) {
+                b_k += beta[j] * kernel[i][j];
             }
+            cout << b_k << endl;
 
             for(int j = 0; j < poly_deg; j++) {
                 tmp = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
-                tmp = tmp * pow(w_x, j);
-                for(int k = 0; k < cols; k++) {
-                    delta_w[k] += tmp * standard_features[i][k];
+                tmp = tmp * pow(b_k, j);
+                for(int k = 0; k < rows; k++) {
+                    delta_beta[k] += tmp * kernel[i][k];
                 }
             }
         }
 
-        for(int i = 0; i < cols; i++) {
-            w[i] = w[i] - learning_rate * delta_w[i];
+        reg_term = linear_transformation(kernel, beta);
+        for(int i = 0; i < rows; i++) {
+            beta[i] = beta[i] - learning_rate * (reg_term[i] * 2 * lambda / rows + delta_beta[i]);
         }
 
         cout << "iter " << iter << endl;
-        for(int i = 0; i < cols; i++) {
-            cout << w[i] << " ";
+        for(int i = 0; i < rows; i++) {
+            cout << beta[i] << " ";
         }
         cout << endl;
 
@@ -312,13 +380,15 @@ int main()
 
     // Calculate gradient descents in the encrypted domain
 
+    /*
+
     // --------------- ENCODING ----------------
     cout << "ENCODING......\n";
-    vector<Plaintext> features_A_plain(rows), features_B_plain(rows);
+    vector<Plaintext> kernel_A_plain(rows), kernel_B_plain(rows);
 
     for (int i = 0; i < rows; i++) {
-        ckks_encoder.encode(features_A[i], scale, features_A_plain[i]);
-        ckks_encoder.encode(features_B[i], scale, features_B_plain[i]);
+        ckks_encoder.encode(kernel_A[i], scale, kernel_A_plain[i]);
+        ckks_encoder.encode(kernel_B[i], scale, kernel_B_plain[i]);
     }
 
     // --------------- ENCRYPTNG ------------------
@@ -335,17 +405,6 @@ int main()
     for(int i = 0; i < rows; i++) {
         evaluator.rotate_vector(features_B_cipher[i], -col_A, gal_keys, features_cipher[i]);
         evaluator.add_inplace(features_cipher[i], features_A_cipher[i]);
-        /*
-        Plaintext x_plain;
-        vector<double> x_decode;
-        decryptor.decrypt(features_cipher[i], x_plain);
-        ckks_encoder.decode(x_plain, x_decode);
-
-        for(int j = 0; j < cols; j++) {
-            cout << standard_features[i][j] << " " << x_decode[j] << " ";
-        }
-        cout << endl;
-        */
     }
 
     double one = 1;
@@ -447,6 +506,8 @@ int main()
     }
     cout << "acc 1 " << acc_1 / rows << endl;
     cout << "acc 2 " << acc_2 / rows << endl;
+
+    */
 
     return 0;
 }
