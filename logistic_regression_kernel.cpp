@@ -305,6 +305,15 @@ int main()
     // cout << " -------- RBF KERNEL -------- " << endl;
 
 
+    vector<vector<double>> kernel_A_diagonals(rows, vector<double>(rows));
+    vector<vector<double>> kernel_B_diagonals(rows, vector<double>(rows));
+
+    for (int i = 0; i < rows; i++) {
+        kernel_A_diagonals[i] = get_diagonal(i, kernel_A);
+        kernel_B_diagonals[i] = get_diagonal(i, kernel_B);
+    }
+
+
     vector<double> coeffs = {0.50101, 0.12669, -0.00005, -0.0009};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
     double learning_rate = 0.0001;
@@ -345,31 +354,41 @@ int main()
 
     // Calculate gradient descents in the encrypted domain
 
-    /*
 
     // --------------- ENCODING ----------------
     cout << "ENCODING......\n";
     vector<Plaintext> kernel_A_plain(rows), kernel_B_plain(rows);
+    vector<Plaintext> kernel_A_D_plain(rows), kernel_B_D_plain(rows);
 
     for (int i = 0; i < rows; i++) {
         ckks_encoder.encode(kernel_A[i], scale, kernel_A_plain[i]);
         ckks_encoder.encode(kernel_B[i], scale, kernel_B_plain[i]);
+        ckks_encoder.encode(kernel_A_diagonals[i], scale, kernel_A_D_plain[i]);
+        ckks_encoder.encode(kernel_B_diagonals[i], scale, kernel_B_D_plain[i]);
     }
 
     // --------------- ENCRYPTNG ------------------
     cout << "ENCRYPTING......\n";
-    vector<Ciphertext> features_A_cipher(rows), features_B_cipher(rows);
+    vector<Ciphertext> kernel_A_cipher(rows), kernel_B_cipher(rows);
+    vector<Ciphertext> kernel_A_D_cipher(rows), kernel_B_D_cipher(rows);
+
     for (int i = 0; i < rows; i++) {
-        encryptor.encrypt(features_A_plain[i], features_A_cipher[i]);
-        encryptor.encrypt(features_B_plain[i], features_B_cipher[i]);
+        encryptor.encrypt(kernel_A_plain[i], kernel_A_cipher[i]);
+        encryptor.encrypt(kernel_B_plain[i], kernel_B_cipher[i]);
+        encryptor.encrypt(kernel_A_D_plain[i], kernel_A_D_cipher[i]);
+        encryptor.encrypt(kernel_B_D_plain[i], kernel_B_D_cipher[i]);
     }
    
     // --------------- CALCULATTNG ------------------
     cout << "CALCULATING......\n";
-    vector<Ciphertext> features_cipher(rows);  // x
+    vector<Ciphertext> kernel_cipher(rows);  // x
+    vector<Ciphertext> kernel_diagonals_cipher(rows);  // x diagonal
+
+    // LINEAR KERNEL
     for(int i = 0; i < rows; i++) {
-        evaluator.rotate_vector(features_B_cipher[i], -col_A, gal_keys, features_cipher[i]);
-        evaluator.add_inplace(features_cipher[i], features_A_cipher[i]);
+        evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_cipher[i]);
+        evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
+
     }
 
     double one = 1;
@@ -379,29 +398,32 @@ int main()
     encryptor.encrypt(one_plain, one_cipher);
 
     double alpha;
-    Plaintext alpha_plain, weights_plain;
-    Ciphertext x_cipher, weights_features_cipher, delta_w_all_cipher;
-    vector<Ciphertext> delta_w_cipher(rows);
+    Plaintext alpha_plain, l2_reg_alpha_plain, beta_plain;
+    Ciphertext x_cipher, beta_cipher, beta_kernel_cipher, delta_beta_all_cipher, l2_reg_cipher;
+    vector<Ciphertext> delta_beta_cipher(rows);
     vector<Ciphertext> wx_powers_cipher(poly_deg);
     // used when decoding
-    Plaintext delta_w_plain;
-    vector<double> delta_w_decode(cols);
+    Plaintext delta_beta_plain;
+    vector<double> delta_beta_decode(cols);
 
     chrono::high_resolution_clock::time_point time_start, time_end;
     chrono::microseconds time_diff;
     time_start = chrono::high_resolution_clock::now();
 
+    double l2_reg_alpha = 2.0 * lambda / rows;
+    ckks_encoder.encode(l2_reg_alpha, scale, l2_reg_alpha_plain);
+    
+
     for(int iter = 0; iter < iter_times; iter++) {
         cout << "iter " << iter << endl;
-        ckks_encoder.encode(weights, scale, weights_plain);
+        ckks_encoder.encode(beta, scale, beta_plain);
         for(int i = 0; i < rows; i++) {
-            x_cipher = features_cipher[i];
-            evaluator.multiply_plain(x_cipher, weights_plain, weights_features_cipher);
-            evaluator.rescale_to_next_inplace(weights_features_cipher);
+            x_cipher = kernel_cipher[i];
+            evaluator.multiply_plain(x_cipher, beta_plain, beta_kernel_cipher);
+            evaluator.rescale_to_next_inplace(beta_kernel_cipher);
 
-            compute_all_powers(weights_features_cipher, poly_deg, evaluator, relin_keys, wx_powers_cipher);
+            compute_all_powers(beta_kernel_cipher, poly_deg, evaluator, relin_keys, wx_powers_cipher);
             wx_powers_cipher[0] = one_cipher;
-            // cout << j << " " << wx_powers_cipher[j].parms_id() << endl;
 
             for(int j = 0; j < poly_deg; j++) {
                 alpha = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
@@ -418,26 +440,37 @@ int main()
             int last_id = wx_powers_cipher.size() - 1;
             parms_id_type last_parms_id = wx_powers_cipher[last_id].parms_id();
             double last_scale = pow(2, (int)log2(wx_powers_cipher[last_id].scale()));
-            cout << last_parms_id << endl;
 
             for(int j = 0; j < poly_deg; j++) {
                 evaluator.mod_switch_to_inplace(wx_powers_cipher[j], last_parms_id);
                 wx_powers_cipher[j].scale() = last_scale;
             }
 
-            evaluator.add_many(wx_powers_cipher, delta_w_cipher[i]);
+            evaluator.add_many(wx_powers_cipher, delta_beta_cipher[i]);
         }
 
-        evaluator.add_many(delta_w_cipher, delta_w_all_cipher);
+        evaluator.add_many(delta_beta_cipher, delta_beta_all_cipher);
+
+        // L2 term
+        encryptor.encrypt(beta_plain, beta_cipher);
+        l2_reg_cipher = Linear_Transform_Cipher(beta_cipher, kernel_diagonals_cipher, gal_keys, params);
+        evaluator.rescale_to_next_inplace(l2_reg_cipher);
+        evaluator.mod_switch_to_inplace(l2_reg_alpha_plain, l2_reg_cipher.parms_id());
+        evaluator.multiply_plain_inplace(l2_reg_cipher, l2_reg_alpha_plain);
+
+        evaluator.mod_switch_to_inplace(l2_reg_cipher, delta_beta_all_cipher.parms_id());
+        l2_reg_cipher.scale() = pow(2, (int)log2(delta_beta_all_cipher.scale()));
+
+        evaluator.add_inplace(delta_beta_all_cipher, l2_reg_cipher);
 
 
         // Test
-        decryptor.decrypt(delta_w_all_cipher, delta_w_plain);
-        ckks_encoder.decode(delta_w_plain, delta_w_decode);
+        decryptor.decrypt(delta_beta_all_cipher, delta_beta_plain);
+        ckks_encoder.decode(delta_beta_plain, delta_beta_decode);
 
-        for(int i = 0; i < cols; i++) {
-            weights[i] = weights[i] - learning_rate * delta_w_decode[i];
-            cout << weights[i] << " ";
+        for(int i = 0; i < rows; i++) {
+            beta[i] = beta[i] - learning_rate * delta_beta_decode[i];
+            cout << beta[i] << " ";
         }
         cout << endl;
     }
@@ -449,11 +482,9 @@ int main()
     // acuracy
     double acc_1 = 0.0, acc_2 = 0.0;
     for(int i = 0; i < rows; i++) {
-        double tmp_1 = 0.0, tmp_2 = 0.0;
-        for(int j = 0; j < cols; j++) {
-            tmp_1 += w[j] * standard_features[i][j];
-            tmp_2 += weights[j] * standard_features[i][j];
-        }
+        double tmp_1, tmp_2;
+        tmp_1 = vector_dot_product(beta_1, standard_features[i]);
+        tmp_2 = vector_dot_product(beta, standard_features[i]);
         if(tmp_1 >= 0) {
             tmp_1 = 1;
         } else {
@@ -472,7 +503,6 @@ int main()
     cout << "acc 1 " << acc_1 / rows << endl;
     cout << "acc 2 " << acc_2 / rows << endl;
 
-    */
 
     return 0;
 }
