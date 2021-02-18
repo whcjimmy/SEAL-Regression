@@ -26,24 +26,6 @@ double vector_dot_product(vector<double> vec_A, vector<double> vec_B)
     return result;
 }
 
-// Matrix Transpose
-vector<vector<double>> transpose_matrix(vector<vector<double>> input_matrix)
-{
-
-    int rowSize = input_matrix.size();
-    int colSize = input_matrix[0].size();
-    vector<vector<double>> transposed(colSize, vector<double>(rowSize));
-
-    for (int i = 0; i < rowSize; i++)
-    {
-        for (int j = 0; j < colSize; j++)
-        {
-            transposed[j][i] = input_matrix[i][j];
-        }
-    }
-
-    return transposed;
-}
 
 // Linear Transformation (or Matrix * Vector)
 vector<double> linear_transformation(vector<vector<double>> input_matrix, vector<double> input_vec)
@@ -66,6 +48,7 @@ vector<double> linear_transformation(vector<vector<double>> input_matrix, vector
 
     return result_vec;
 }
+
 
 // String matrix to double matrix converter
 vector<vector<double>> stringTodoubleMatrix(vector<vector<string>> matrix)
@@ -127,40 +110,26 @@ vector<vector<double>> minmax_scaler(vector<vector<double>> input_matrix)
 {
     int rowSize = input_matrix.size();
     int colSize = input_matrix[0].size();
-    vector<vector<double>> result_matrix(rowSize, vector<double>(colSize));
-
-    // Optimization: Get Means and Standard Devs first then do the scaling
-    // first pass: get means and standard devs
-    vector<double> means_vec(colSize);
-    vector<double> stdev_vec(colSize);
-    for (int i = 0; i < colSize; i++)
-    {
-        vector<double> column(rowSize);
-        for (int j = 0; j < rowSize; j++)
-        {
-            // cout << input_matrix[j][i] << ", ";
-            column[j] = input_matrix[j][i];
-            // cout << column[j] << ", ";
+    for(int j = 0; j < colSize; j++) {
+        double max = -99999;
+        double min = 99999;
+        for(int i = 0; i < rowSize; i++) {
+            if(input_matrix[i][j] > max) {
+                max = input_matrix[i][j];
+            }
+            if(input_matrix[i][j] < min) {
+                min = input_matrix[i][j];
+            }
         }
-
-        means_vec[i] = getMean(column);
-        stdev_vec[i] = getStandardDev(column, means_vec[i]);
-        // cout << "MEAN at i = " << i << ":\t" << means_vec[i] << endl;
-        // cout << "STDV at i = " << i << ":\t" << stdev_vec[i] << endl;
-    }
-
-    // second pass: scale
-    for (int i = 0; i < rowSize; i++)
-    {
-        for (int j = 0; j < colSize; j++)
-        {
-            result_matrix[i][j] = (input_matrix[i][j] - means_vec[j]) / stdev_vec[j];
-            // cout << "RESULT at i = " << i << ":\t" << result_matrix[i][j] << endl;
+        for(int i = 0; i < rowSize; i++) {
+            input_matrix[i][j] = (input_matrix[i][j] - min) / (max - min);
         }
     }
 
-    return result_matrix;
+    return input_matrix;
 }
+
+
 int main()
 {
     int poly_modulus_degree = 16384;
@@ -276,7 +245,7 @@ int main()
         beta[i] = RandomFloat(-1, 1) + 0.00000001;
     }
 
-    vector<vector<double>> standard_features = standard_scaler(features);
+    vector<vector<double>> standard_features = minmax_scaler(features);
 
     double lambda = 0.01;
     double poly_deg = 3 + 1;
@@ -342,18 +311,14 @@ int main()
     int iter_times = 15;
     
     // Calculate gradient descents in the plaintext domain
+    vector<double> beta_1 = beta;
     vector<double> delta_beta(rows, 0.0);
-    vector<double> reg_term(rows, 0.0);
+    vector<double> l2_reg(rows, 0.0);
 
     for(int iter = 0; iter < iter_times; iter++) {
         for(int i = 0; i < rows; i++) {
-            double b_k = 0.0;
+            double b_k = vector_dot_product(beta_1, kernel[i]);
             double tmp = 0.0;
-
-            for(int j = 0; j < rows; j++) {
-                b_k += beta[j] * kernel[i][j];
-            }
-            cout << b_k << endl;
 
             for(int j = 0; j < poly_deg; j++) {
                 tmp = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
@@ -364,14 +329,14 @@ int main()
             }
         }
 
-        reg_term = linear_transformation(kernel, beta);
+        l2_reg = linear_transformation(kernel, beta_1);
         for(int i = 0; i < rows; i++) {
-            beta[i] = beta[i] - learning_rate * (reg_term[i] * 2 * lambda / rows + delta_beta[i]);
+            beta_1[i] = beta_1[i] - learning_rate * (l2_reg[i] * 2 * lambda / rows + delta_beta[i]);
         }
 
         cout << "iter " << iter << endl;
         for(int i = 0; i < rows; i++) {
-            cout << beta[i] << " ";
+            cout << beta_1[i] << " ";
         }
         cout << endl;
 

@@ -26,46 +26,6 @@ double vector_dot_product(vector<double> vec_A, vector<double> vec_B)
     return result;
 }
 
-// Matrix Transpose
-vector<vector<double>> transpose_matrix(vector<vector<double>> input_matrix)
-{
-
-    int rowSize = input_matrix.size();
-    int colSize = input_matrix[0].size();
-    vector<vector<double>> transposed(colSize, vector<double>(rowSize));
-
-    for (int i = 0; i < rowSize; i++)
-    {
-        for (int j = 0; j < colSize; j++)
-        {
-            transposed[j][i] = input_matrix[i][j];
-        }
-    }
-
-    return transposed;
-}
-
-// Linear Transformation (or Matrix * Vector)
-vector<double> linear_transformation(vector<vector<double>> input_matrix, vector<double> input_vec)
-{
-
-    int rowSize = input_matrix.size();
-    int colSize = input_matrix[0].size();
-
-    if (colSize != input_vec.size())
-    {
-        cerr << "Matrix Vector sizes error" << endl;
-        exit(EXIT_FAILURE);
-    }
-
-    vector<double> result_vec(rowSize);
-    for (int i = 0; i < input_matrix.size(); i++)
-    {
-        result_vec[i] = vector_dot_product(input_matrix[i], input_vec);
-    }
-
-    return result_vec;
-}
 
 // String matrix to double matrix converter
 vector<vector<double>> stringTodoubleMatrix(vector<vector<string>> matrix)
@@ -272,21 +232,13 @@ int main()
     int iter_times = 15;
     
     // Calculate gradient descents in the plaintext domain
-    vector<double> w(cols);
+    vector<double> weights_1 = weights;
     vector<double> delta_w(cols, 0.0);
-
-    for(int i = 0; i < cols; i++) {
-        w[i] = weights[i];
-    }
 
     for(int iter = 0; iter < iter_times; iter++) {
         for(int i = 0; i < rows; i++) {
-            double w_x = 0.0;
+            double w_x = vector_dot_product(weights_1, standard_features[i]);
             double tmp = 0.0;
-
-            for(int j = 0; j < cols; j++) {
-                w_x += w[j] * standard_features[i][j];
-            }
 
             for(int j = 0; j < poly_deg; j++) {
                 tmp = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
@@ -298,15 +250,14 @@ int main()
         }
 
         for(int i = 0; i < cols; i++) {
-            w[i] = w[i] - learning_rate * delta_w[i];
+            weights_1[i] = weights_1[i] - learning_rate * delta_w[i];
         }
 
         cout << "iter " << iter << endl;
         for(int i = 0; i < cols; i++) {
-            cout << w[i] << " ";
+            cout << weights_1[i] << " ";
         }
         cout << endl;
-
     }
 
 
@@ -394,7 +345,7 @@ int main()
             int last_id = wx_powers_cipher.size() - 1;
             parms_id_type last_parms_id = wx_powers_cipher[last_id].parms_id();
             double last_scale = pow(2, (int)log2(wx_powers_cipher[last_id].scale()));
-            cout << last_parms_id << endl;
+            // cout << last_parms_id << endl;
 
             for(int j = 0; j < poly_deg; j++) {
                 evaluator.mod_switch_to_inplace(wx_powers_cipher[j], last_parms_id);
@@ -425,11 +376,9 @@ int main()
     // acuracy
     double acc_1 = 0.0, acc_2 = 0.0;
     for(int i = 0; i < rows; i++) {
-        double tmp_1 = 0.0, tmp_2 = 0.0;
-        for(int j = 0; j < cols; j++) {
-            tmp_1 += w[j] * standard_features[i][j];
-            tmp_2 += weights[j] * standard_features[i][j];
-        }
+        double tmp_1, tmp_2;
+        tmp_1 = vector_dot_product(weights_1, standard_features[i]);
+        tmp_2 = vector_dot_product(weights, standard_features[i]);
         if(tmp_1 >= 0) {
             tmp_1 = 1;
         } else {

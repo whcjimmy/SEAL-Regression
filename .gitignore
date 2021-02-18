@@ -6,7 +6,6 @@ bin/*
 *.html
 *.p
 *.exe
-*.txt
 *_copy.csv
 *.png
 .vscode
