@@ -118,15 +118,20 @@ def read_weight(weight_filename):
     return weights_dict
 
 
-def sigmoid(data, label, model): 
-    return 1.0 / (1 + np.exp(label * np.dot(model.T, data)))
+def sigmoid(value): 
+    return 1.0 / (1 + np.exp(-1 * value))
 
 
-def avg_lr(W, data, labels):
-    pred = np.dot(data, W.T)
-    return np.mean(np.sign(pred) == labels)
+def approx_func(approx, model, data, label, weights = None):
+    value = -1 * label * np.dot(model.T, data)
 
-
-def avg_kernel(beta, K, labels):
-    pred = np.dot(K.T, beta)
-    return np.mean(np.sign(pred) == labels)
+    if approx == 0:
+        return sigmoid(value)
+    elif approx == 1:
+        poly = np.poly1d(weights)
+        return poly(value)
+    elif approx == 2:
+        t = 0
+        for i in range(len(weights)):
+            t = t + weights[i] * (value ** i)
+        return t
