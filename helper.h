@@ -642,14 +642,14 @@ void compute_all_powers_vec_cipher(const Ciphertext &ctx, int cols, int degree, 
 void compute_all_powers(const Ciphertext &ctx, int degree, Evaluator &evaluator, RelinKeys &relin_keys, vector<Ciphertext> &powers)
 {
 
-    // powers.resize(degree + 1);
+    powers.resize(degree + 1);
     powers[1] = ctx;
 
     vector<int> levels(degree + 1, 0);
     levels[1] = 0;
     levels[0] = 0;
 
-    for (int i = 2; i < degree; i++)
+    for (int i = 2; i <= degree; i++)
     {
         // compute x^i
         int minlevel = i;
