@@ -164,6 +164,10 @@ int main()
     // Create Scale
     double scale = pow(2.0, 35);
 
+    // Time
+    chrono::high_resolution_clock::time_point time_start, time_end;
+    chrono::milliseconds time_diff;
+
     // read file
     string filename = "pulsar_stars.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
@@ -172,7 +176,7 @@ int main()
     // Init features, labels and weights
     // Init features (rows of f_matrix , cols of f_matrix - 1)
     int rows = f_matrix.size();
-    rows = 10;
+    // rows = 10;
     cout << "\nNumber of rows  = " << rows << endl;
     int cols = f_matrix[0].size() - 1;
     cout << "\nNumber of cols  = " << cols << endl;
@@ -192,21 +196,14 @@ int main()
     }
 
     // Fill the weights with random numbers (from 1 - 2)
-    for (int i = 0; i < cols; i++)
-    {
-        // weights[i] = 1;
+    for (int i = 0; i < cols; i++) {
         weights[i] = RandomFloat(-2, 2) + 0.00000001;
-        // cout << "weights[i] = " << weights[i] << endl;
     }
 
     vector<vector<double>> standard_features = standard_scaler(features);
 
-    double lambda = 0.01;
-    double poly_deg = 3 + 1;
-    // double poly_deg = 7 + 1;
-    
     // seperate features into two parts
-    int col_A = 3;
+    int col_A = 4;
     int col_B = cols - col_A;
 
     vector<vector<double>> features_A(rows, vector<double>(col_A));
@@ -226,19 +223,25 @@ int main()
         }
     }
 
+    double lambda = 0.01;
+    double poly_deg = 3;
+    // double poly_deg = 7;
+
     vector<double> coeffs = {0.50101, 0.12669, -0.00005, -0.0009};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
     double learning_rate = 0.01;
     int iter_times = 15;
     
     // Calculate gradient descents in the plaintext domain
+    //
     vector<double> weights_1 = weights;
     vector<double> delta_w(cols, 0.0);
+    double w_x, tmp;
 
     for(int iter = 0; iter < iter_times; iter++) {
         for(int i = 0; i < rows; i++) {
-            double w_x = vector_dot_product(weights_1, standard_features[i]);
-            double tmp = 0.0;
+            w_x = vector_dot_product(weights_1, standard_features[i]);
+            tmp = 0.0;
 
             for(int j = 0; j < poly_deg; j++) {
                 tmp = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
@@ -253,6 +256,7 @@ int main()
             weights_1[i] = weights_1[i] - learning_rate * delta_w[i];
         }
 
+        // output results
         cout << "iter " << iter << endl;
         for(int i = 0; i < cols; i++) {
             cout << weights_1[i] << " ";
@@ -264,6 +268,8 @@ int main()
     // Calculate gradient descents in the encrypted domain
 
     // --------------- ENCODING ----------------
+    time_start = chrono::high_resolution_clock::now();
+
     cout << "ENCODING......\n";
     vector<Plaintext> features_A_plain(rows), features_B_plain(rows);
 
@@ -272,31 +278,32 @@ int main()
         ckks_encoder.encode(features_B[i], scale, features_B_plain[i]);
     }
 
+    time_end = chrono::high_resolution_clock::now();
+    time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
+    cout << rows << " total encoding time :\t" << time_diff.count() << " milliseconds" << endl;
+
     // --------------- ENCRYPTNG ------------------
+    time_start = chrono::high_resolution_clock::now();
+
     cout << "ENCRYPTING......\n";
     vector<Ciphertext> features_A_cipher(rows), features_B_cipher(rows);
     for (int i = 0; i < rows; i++) {
         encryptor.encrypt(features_A_plain[i], features_A_cipher[i]);
         encryptor.encrypt(features_B_plain[i], features_B_cipher[i]);
     }
+
+    time_end = chrono::high_resolution_clock::now();
+    time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
+    cout << rows << " total encryption time :\t" << time_diff.count() << " milliseconds" << endl;
    
     // --------------- CALCULATTNG ------------------
+    time_start = chrono::high_resolution_clock::now();
+
     cout << "CALCULATING......\n";
     vector<Ciphertext> features_cipher(rows);  // x
     for(int i = 0; i < rows; i++) {
         evaluator.rotate_vector(features_B_cipher[i], -col_A, gal_keys, features_cipher[i]);
         evaluator.add_inplace(features_cipher[i], features_A_cipher[i]);
-        /*
-        Plaintext x_plain;
-        vector<double> x_decode;
-        decryptor.decrypt(features_cipher[i], x_plain);
-        ckks_encoder.decode(x_plain, x_decode);
-
-        for(int j = 0; j < cols; j++) {
-            cout << standard_features[i][j] << " " << x_decode[j] << " ";
-        }
-        cout << endl;
-        */
     }
 
     double one = 1;
@@ -314,10 +321,6 @@ int main()
     Plaintext delta_w_plain;
     vector<double> delta_w_decode(cols);
 
-    chrono::high_resolution_clock::time_point time_start, time_end;
-    chrono::microseconds time_diff;
-    time_start = chrono::high_resolution_clock::now();
-
     for(int iter = 0; iter < iter_times; iter++) {
         cout << "iter " << iter << endl;
         ckks_encoder.encode(weights, scale, weights_plain);
@@ -328,7 +331,6 @@ int main()
 
             compute_all_powers(weights_features_cipher, poly_deg, evaluator, relin_keys, wx_powers_cipher);
             wx_powers_cipher[0] = one_cipher;
-            // cout << j << " " << wx_powers_cipher[j].parms_id() << endl;
 
             for(int j = 0; j < poly_deg; j++) {
                 alpha = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
@@ -345,7 +347,6 @@ int main()
             int last_id = wx_powers_cipher.size() - 1;
             parms_id_type last_parms_id = wx_powers_cipher[last_id].parms_id();
             double last_scale = pow(2, (int)log2(wx_powers_cipher[last_id].scale()));
-            // cout << last_parms_id << endl;
 
             for(int j = 0; j < poly_deg; j++) {
                 evaluator.mod_switch_to_inplace(wx_powers_cipher[j], last_parms_id);
@@ -370,8 +371,8 @@ int main()
     }
 
     time_end = chrono::high_resolution_clock::now();
-    time_diff = chrono::duration_cast<chrono::microseconds>(time_end - time_start);
-    cout << rows << " total execution time :\t" << time_diff.count() << " microseconds" << endl;
+    time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
+    cout << rows << " total execution time :\t" << time_diff.count() << " milliseconds" << endl;
 
     // acuracy
     double acc_1 = 0.0, acc_2 = 0.0;

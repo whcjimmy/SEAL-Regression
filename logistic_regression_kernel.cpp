@@ -212,6 +212,10 @@ int main()
     // Create Scale
     double scale = pow(2.0, 35);
 
+    // Time
+    chrono::high_resolution_clock::time_point time_start, time_end;
+    chrono::milliseconds time_diff;
+
     // read file
     string filename = "pulsar_stars.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
@@ -240,19 +244,14 @@ int main()
     }
 
     // Fill the weights with random numbers (from 1 - 2)
-    for (int i = 0; i < rows; i++)
-    {
-        beta[i] = RandomFloat(-1, 1) + 0.00000001;
+    for (int i = 0; i < rows; i++) {
+        beta[i] = RandomFloat(-2, 2) + 0.00000001;
     }
 
     vector<vector<double>> standard_features = minmax_scaler(features);
 
-    double lambda = 0.01;
-    double poly_deg = 3;
-    // double poly_deg = 7 + 1;
-    
     // seperate features into two parts
-    int col_A = 3;
+    int col_A = 4;
     int col_B = cols - col_A;
 
     vector<vector<double>> kernel(rows, vector<double>(rows));
@@ -267,8 +266,8 @@ int main()
         }
     }
 
-    // -------- LINEAR KERNEL --------
     /*
+    // -------- LINEAR KERNEL --------
     cout << " -------- LINEAR KERNEL -------- " << endl;
     // calculate kernel_A
     for(int i = 0; i < rows; i++) {
@@ -298,8 +297,8 @@ int main()
     }
     */
 
-    // -------- Polynomial KERNEL --------
     /*
+    // -------- Polynomial KERNEL --------
     cout << " -------- Polynomial KERNEL -------- " << endl;
     int poly_kernel_deg = 2;
     // calculate kernel_A
@@ -334,12 +333,12 @@ int main()
     */
 
     bool is_rbf = false;
+    vector<vector<double>> kernel_A_2(rows, vector<double>(rows));
+    vector<vector<double>> kernel_B_2(rows, vector<double>(rows));
     // -------- RBF KERNEL --------
     cout << " -------- RBF KERNEL -------- " << endl;
     is_rbf = true;
     vector<vector<double>> kernel_2(rows, vector<double>(rows));
-    vector<vector<double>> kernel_A_2(rows, vector<double>(rows));
-    vector<vector<double>> kernel_B_2(rows, vector<double>(rows));
 
     // calculate kernel_A
     for(int i = 0; i < rows; i++) {
@@ -375,14 +374,27 @@ int main()
     }
 
 
+    // diagonal matrix
     vector<vector<double>> kernel_A_diagonals(rows, vector<double>(rows));
     vector<vector<double>> kernel_B_diagonals(rows, vector<double>(rows));
+    vector<vector<double>> kernel_A_2_diagonals(rows, vector<double>(rows));
+    vector<vector<double>> kernel_B_2_diagonals(rows, vector<double>(rows));
 
     for (int i = 0; i < rows; i++) {
         kernel_A_diagonals[i] = get_diagonal(i, kernel_A);
         kernel_B_diagonals[i] = get_diagonal(i, kernel_B);
     }
 
+    if(is_rbf == true) {
+        for(int i = 0; i < rows; i++) {
+            kernel_A_2_diagonals[i] = get_diagonal(i, kernel_A_2);
+            kernel_B_2_diagonals[i] = get_diagonal(i, kernel_B_2);
+        }
+    }
+
+    double lambda = 0.01;
+    double poly_deg = 3;
+    // double poly_deg = 7;
 
     vector<double> coeffs = {0.50101, 0.12669, -0.00005, -0.0009};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
@@ -390,14 +402,16 @@ int main()
     int iter_times = 15;
     
     // Calculate gradient descents in the plaintext domain
+
     vector<double> beta_1 = beta;
     vector<double> delta_beta(rows, 0.0);
     vector<double> l2_reg(rows, 0.0);
+    double b_k, tmp;
 
     for(int iter = 0; iter < iter_times; iter++) {
         for(int i = 0; i < rows; i++) {
-            double b_k = vector_dot_product(beta_1, kernel[i]);
-            double tmp = 0.0;
+            b_k = vector_dot_product(beta_1, kernel[i]);
+            tmp = 0.0;
 
             for(int j = 0; j <= poly_deg; j++) {
                 tmp = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
@@ -409,9 +423,12 @@ int main()
         }
 
         l2_reg = linear_transformation(kernel, beta_1);
+        tmp = 2 * lambda / rows;
         for(int i = 0; i < rows; i++) {
-            beta_1[i] = beta_1[i] - learning_rate * (l2_reg[i] * 2 * lambda / rows + delta_beta[i]);
+            beta_1[i] = beta_1[i] - learning_rate * (l2_reg[i] * tmp + delta_beta[i]);
         }
+
+        // output results
         cout << "iter " << iter << endl;
         for(int i = 0; i < rows; i++) {
             cout << beta_1[i] << " ";
@@ -423,48 +440,66 @@ int main()
 
     // Calculate gradient descents in the encrypted domain
 
-
     // --------------- ENCODING ----------------
+    time_start = chrono::high_resolution_clock::now();
+
     cout << "ENCODING......\n";
     vector<Plaintext> kernel_A_plain(rows), kernel_B_plain(rows);
-    vector<Plaintext> kernel_A_2_plain(rows), kernel_B_2_plain(rows);
     vector<Plaintext> kernel_A_D_plain(rows), kernel_B_D_plain(rows);
+    vector<Plaintext> kernel_A_2_plain(rows), kernel_B_2_plain(rows);
+    vector<Plaintext> kernel_A_2_D_plain(rows), kernel_B_2_D_plain(rows);
 
     for (int i = 0; i < rows; i++) {
         ckks_encoder.encode(kernel_A[i], scale, kernel_A_plain[i]);
         ckks_encoder.encode(kernel_B[i], scale, kernel_B_plain[i]);
-        // ckks_encoder.encode(kernel_A_diagonals[i], scale, kernel_A_D_plain[i]);
-        // ckks_encoder.encode(kernel_B_diagonals[i], scale, kernel_B_D_plain[i]);
+        ckks_encoder.encode(kernel_A_diagonals[i], scale, kernel_A_D_plain[i]);
+        ckks_encoder.encode(kernel_B_diagonals[i], scale, kernel_B_D_plain[i]);
     }
 
     if(is_rbf == true) {
         for (int i = 0; i < rows; i++) {
             ckks_encoder.encode(kernel_A_2[i], scale, kernel_A_2_plain[i]);
             ckks_encoder.encode(kernel_B_2[i], scale, kernel_B_2_plain[i]);
+            ckks_encoder.encode(kernel_A_2_diagonals[i], scale, kernel_A_2_D_plain[i]);
+            ckks_encoder.encode(kernel_B_2_diagonals[i], scale, kernel_B_2_D_plain[i]);
         }
     }
 
+    time_end = chrono::high_resolution_clock::now();
+    time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
+    cout << rows << " total encoding time :\t" << time_diff.count() << " milliseconds" << endl;
+
     // --------------- ENCRYPTNG ------------------
+    time_start = chrono::high_resolution_clock::now();
+
     cout << "ENCRYPTING......\n";
     vector<Ciphertext> kernel_A_cipher(rows), kernel_B_cipher(rows);
-    vector<Ciphertext> kernel_A_2_cipher(rows), kernel_B_2_cipher(rows);
     vector<Ciphertext> kernel_A_D_cipher(rows), kernel_B_D_cipher(rows);
+    vector<Ciphertext> kernel_A_2_cipher(rows), kernel_B_2_cipher(rows);
+    vector<Ciphertext> kernel_A_2_D_cipher(rows), kernel_B_2_D_cipher(rows);
 
     for (int i = 0; i < rows; i++) {
         encryptor.encrypt(kernel_A_plain[i], kernel_A_cipher[i]);
         encryptor.encrypt(kernel_B_plain[i], kernel_B_cipher[i]);
-        // encryptor.encrypt(kernel_A_D_plain[i], kernel_A_D_cipher[i]);
-        // encryptor.encrypt(kernel_B_D_plain[i], kernel_B_D_cipher[i]);
+        encryptor.encrypt(kernel_A_D_plain[i], kernel_A_D_cipher[i]);
+        encryptor.encrypt(kernel_B_D_plain[i], kernel_B_D_cipher[i]);
     }
 
     if(is_rbf == true) {
         for (int i = 0; i < rows; i++) {
             encryptor.encrypt(kernel_A_2_plain[i], kernel_A_2_cipher[i]);
             encryptor.encrypt(kernel_B_2_plain[i], kernel_B_2_cipher[i]);
+            encryptor.encrypt(kernel_A_2_D_plain[i], kernel_A_2_D_cipher[i]);
+            encryptor.encrypt(kernel_B_2_D_plain[i], kernel_B_2_D_cipher[i]);
         }
     }
+
+    time_end = chrono::high_resolution_clock::now();
+    time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
+    cout << rows << " total encryption time :\t" << time_diff.count() << " milliseconds" << endl;
    
     // --------------- CALCULATTNG ------------------
+    time_start = chrono::high_resolution_clock::now();
 
     double one = 1;
     Plaintext one_plain;
@@ -480,7 +515,7 @@ int main()
     // LINEAR KERNEL
     for(int i = 0; i < rows; i++) {
         evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_cipher[i]);
-        // evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
+        evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
     }
     */
 
@@ -488,11 +523,18 @@ int main()
     // POLYNOMIAL KERNEL
     for(int i = 0; i < rows; i++) {
         evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_cipher[i]);
+        evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
     }
     vector<Ciphertext> kernel_powers_cipher(poly_kernel_deg);
+    vector<Ciphertext> kernel_D_powers_cipher(poly_kernel_deg);
     for(int i = 0; i < rows; i++) {
+        // original
         compute_all_powers(kernel_cipher[i], poly_kernel_deg, evaluator, relin_keys, kernel_powers_cipher);
         kernel_cipher[i] = kernel_powers_cipher[poly_kernel_deg];
+
+        // diagonal
+        compute_all_powers(kernel_diagonals_cipher[i], poly_kernel_deg, evaluator, relin_keys, kernel_D_powers_cipher);
+        kernel_diagonals_cipher[i] = kernel_D_powers_cipher[poly_kernel_deg];
 
         // Test
         // Plaintext kernel_powers_plaintext;
@@ -505,7 +547,9 @@ int main()
     // RBF KERNEL
     if(is_rbf == true) {
         vector<Ciphertext> kernel_2_cipher(rows);
+        vector<Ciphertext> kernel_2_D_cipher(rows);
         for(int i = 0; i < rows; i++) {
+            // original
             evaluator.add(kernel_A_2_cipher[i], kernel_B_2_cipher[i], kernel_2_cipher[i]);
             evaluator.multiply_inplace(kernel_2_cipher[i], kernel_2_cipher[i]);
             evaluator.rescale_to_next_inplace(kernel_2_cipher[i]);
@@ -519,13 +563,33 @@ int main()
             evaluator.add_plain_inplace(kernel_cipher[i], one_plain);
             kernel_2_cipher[i].scale() = pow(2, (int)log2(kernel_cipher[i].scale()));
             evaluator.add_inplace(kernel_cipher[i], kernel_2_cipher[i]);
+
+            // diagonal
+            evaluator.add(kernel_A_2_cipher[i], kernel_B_2_cipher[i], kernel_2_D_cipher[i]);
+            evaluator.multiply_inplace(kernel_2_D_cipher[i], kernel_2_D_cipher[i]);
+            evaluator.rescale_to_next_inplace(kernel_2_D_cipher[i]);
+            evaluator.relinearize_inplace(kernel_2_D_cipher[i], relin_keys);
+
+            evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_diagonals_cipher[i]);
+
+            evaluator.mod_switch_to_inplace(one_plain, kernel_2_D_cipher[i].parms_id());
+            evaluator.mod_switch_to_inplace(kernel_diagonals_cipher[i], kernel_2_D_cipher[i].parms_id());
+
+            evaluator.add_plain_inplace(kernel_diagonals_cipher[i], one_plain);
+            kernel_2_D_cipher[i].scale() = pow(2, (int)log2(kernel_diagonals_cipher[i].scale()));
+            evaluator.add_inplace(kernel_diagonals_cipher[i], kernel_2_D_cipher[i]);
         }
     }
 
+    time_end = chrono::high_resolution_clock::now();
+    time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
+    cout << rows << " total kernel computation time :\t" << time_diff.count() << " milliseconds" << endl;
 
 
+    // --------------- CALCULATTNG ------------------
+    time_start = chrono::high_resolution_clock::now();
 
-    // BEGIN 
+    cout << "CALCULATING......\n";
 
     double alpha;
     Plaintext alpha_plain, l2_reg_alpha_plain, beta_plain;
@@ -536,8 +600,6 @@ int main()
     Plaintext delta_beta_plain;
     vector<double> delta_beta_decode(cols);
 
-    chrono::high_resolution_clock::time_point time_start, time_end;
-    chrono::microseconds time_diff;
     time_start = chrono::high_resolution_clock::now();
 
     double l2_reg_alpha = 2.0 * lambda / rows;
@@ -586,7 +648,7 @@ int main()
 
         // L2 term
         encryptor.encrypt(beta_plain, beta_cipher);
-        l2_reg_cipher = Linear_Transform_Cipher(beta_cipher, kernel_cipher, gal_keys, params);
+        l2_reg_cipher = Linear_Transform_Cipher(beta_cipher, kernel_diagonals_cipher, gal_keys, params);
         evaluator.rescale_to_next_inplace(l2_reg_cipher);
         evaluator.mod_switch_to_inplace(l2_reg_alpha_plain, l2_reg_cipher.parms_id());
         evaluator.multiply_plain_inplace(l2_reg_cipher, l2_reg_alpha_plain);
@@ -609,8 +671,8 @@ int main()
     }
 
     time_end = chrono::high_resolution_clock::now();
-    time_diff = chrono::duration_cast<chrono::microseconds>(time_end - time_start);
-    cout << rows << " total execution time :\t" << time_diff.count() << " microseconds" << endl;
+    time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
+    cout << rows << " total execution time :\t" << time_diff.count() << " milliseconds" << endl;
 
     // acuracy
     double acc_1 = 0.0, acc_2 = 0.0;
