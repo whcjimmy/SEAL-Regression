@@ -332,7 +332,7 @@ int main()
             compute_all_powers(weights_features_cipher, poly_deg, evaluator, relin_keys, wx_powers_cipher);
             wx_powers_cipher[0] = one_cipher;
 
-            for(int j = 0; j < poly_deg; j++) {
+            for(int j = 0; j <= poly_deg; j++) {
                 alpha = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
                 ckks_encoder.encode(alpha, scale, alpha_plain);
 
@@ -348,7 +348,7 @@ int main()
             parms_id_type last_parms_id = wx_powers_cipher[last_id].parms_id();
             double last_scale = pow(2, (int)log2(wx_powers_cipher[last_id].scale()));
 
-            for(int j = 0; j < poly_deg; j++) {
+            for(int j = 0; j <= poly_deg; j++) {
                 evaluator.mod_switch_to_inplace(wx_powers_cipher[j], last_parms_id);
                 wx_powers_cipher[j].scale() = last_scale;
             }
