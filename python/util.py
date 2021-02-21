@@ -26,7 +26,7 @@ def read_pulsar_stars():
         ff = ff[1:]
         ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
         ff = np.array(ff)
-        np.random.shuffle(ff)
+        # np.random.shuffle(ff)
     samples = ff[:, :-1]
     labels = ff[:, -1]
     data['training_x'] = samples

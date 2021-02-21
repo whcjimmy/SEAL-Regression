@@ -82,6 +82,30 @@ vector<vector<double>> standard_scaler(vector<vector<double>> input_matrix)
     return result_matrix;
 }
 
+// Min Max Scaler
+vector<vector<double>> minmax_scaler(vector<vector<double>> input_matrix)
+{
+    int rowSize = input_matrix.size();
+    int colSize = input_matrix[0].size();
+    for(int j = 0; j < colSize; j++) {
+        double max = -99999;
+        double min = 99999;
+        for(int i = 0; i < rowSize; i++) {
+            if(input_matrix[i][j] > max) {
+                max = input_matrix[i][j];
+            }
+            if(input_matrix[i][j] < min) {
+                min = input_matrix[i][j];
+            }
+        }
+        for(int i = 0; i < rowSize; i++) {
+            input_matrix[i][j] = (input_matrix[i][j] - min) / (max - min);
+        }
+    }
+
+    return input_matrix;
+}
+
 int main()
 {
     int poly_modulus_degree = 16384;
@@ -197,10 +221,23 @@ int main()
 
     // Fill the weights with random numbers (from 1 - 2)
     for (int i = 0; i < cols; i++) {
-        weights[i] = RandomFloat(-2, 2) + 0.00000001;
+        weights[i] = RandomFloat(0.0001, 0.0005);
+        // weights[i] = RandomFloat(-2, 2) + 0.00000001;
     }
 
-    vector<vector<double>> standard_features = standard_scaler(features);
+    for(int i = 0; i < 5; i++) {
+        for(int j = 0; j < 5; j++)
+            cout <<features[i][j] <<" ";
+        cout << endl;
+    }
+
+    vector<vector<double>> standard_features = minmax_scaler(features);
+
+    for(int i = 0; i < 5; i++) {
+        for(int j = 0; j < 5; j++)
+            cout <<standard_features[i][j] <<" ";
+        cout << endl;
+    }
 
     // seperate features into two parts
     int col_A = 4;

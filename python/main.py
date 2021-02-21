@@ -43,13 +43,12 @@ testing_x = scaler.transform(testing_x)
 dataset['training_x'] = training_x
 dataset['testing_x'] = testing_x
 
-
 #Original Load Weights
 weights_dict = util.read_weight('./weights.out')
 
 # Parameters Settings
 learning_rate = 0.01
-iteration_times = 20
+iteration_times = 15
 
 # Logistic Regression
 print('---------- Logistic Regression ----------')
@@ -61,21 +60,18 @@ print(clf.score(training_x, training_y), clf.score(testing_x, testing_y))
 print('Sklearn SGD Classifier')
 clf = SGDClassifier(alpha = 10 * learning_rate).fit(training_x, training_y)
 print(clf.score(training_x, training_y), clf.score(testing_x, testing_y))
-'''
 print('Original')
 W = LR.train_LR(dataset, learning_rate, iteration_times, 0)
+# W = np.array([-0.343722, -0.183599, -0.0577481, -0.00499239, -0.0418335, -0.0570311, -0.166774, -0.0540226])
 LR.test_lr(W, dataset)
-'''
 
 # Polynomial Logistic Regression
-'''
 for deg in range(3, 11, 4):
     print('Poly degree = ', deg,)
     W = LR.train_LR(dataset, learning_rate, iteration_times, 1, weights_dict[str(deg)])
     LR.test_lr(W, dataset)
     W = LR.train_LR(dataset, learning_rate, iteration_times, 2, weights_dict[str(deg)])
     LR.test_lr(W, dataset)
-'''
 
 
 # KERNELS

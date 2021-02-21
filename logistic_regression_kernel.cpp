@@ -224,7 +224,7 @@ int main()
     // Init features, labels and weights
     // Init features (rows of f_matrix , cols of f_matrix - 1)
     int rows = f_matrix.size();
-    rows = 100;
+    // rows = 10;
     cout << "\nNumber of rows  = " << rows << endl;
     int cols = f_matrix[0].size() - 1;
     cout << "\nNumber of cols  = " << cols << endl;
@@ -245,7 +245,8 @@ int main()
 
     // Fill the weights with random numbers (from 1 - 2)
     for (int i = 0; i < rows; i++) {
-        beta[i] = RandomFloat(-2, 2) + 0.00000001;
+        beta[i] = RandomFloat(0.0001, 0.0005);
+        // beta[i] = RandomFloat(-2, 2) + 0.00000001;
     }
 
     vector<vector<double>> standard_features = minmax_scaler(features);
@@ -543,7 +544,7 @@ int main()
         // ckks_encoder.decode(kernel_powers_plaintext, kernel_powers_decode);
     }
     */
-
+    
     // RBF KERNEL
     if(is_rbf == true) {
         vector<Ciphertext> kernel_2_cipher(rows);
@@ -678,8 +679,8 @@ int main()
     double acc_1 = 0.0, acc_2 = 0.0;
     for(int i = 0; i < rows; i++) {
         double tmp_1, tmp_2;
-        tmp_1 = vector_dot_product(beta_1, standard_features[i]);
-        tmp_2 = vector_dot_product(beta, standard_features[i]);
+        tmp_1 = vector_dot_product(beta_1, kernel[i]);
+        tmp_2 = vector_dot_product(beta, kernel[i]);
         if(tmp_1 >= 0) {
             tmp_1 = 1;
         } else {
