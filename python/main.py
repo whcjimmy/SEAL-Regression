@@ -12,8 +12,9 @@ from sklearn.linear_model import LogisticRegression
 # Load Datasets
 # dataset = util.read_banknote()
 # dataset = util.read_load_breast_cancer()
-dataset = util.read_make_circles()
-# dataset = util.read_make_moons()
+dataset = util.read_heart_disease()
+# dataset = util.read_make_circles()
+dataset = util.read_make_moons()
 # dataset = util.read_data_hw2('hw2_lssvm_all.dat')
 # dataset = util.read_data_hw3('./hw3_train.dat', './hw3_test.dat')
 # dataset = util.read_pulsar_stars() # use Z-score Standardization
@@ -135,11 +136,7 @@ for deg in range(3, 11, 4):
     beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 2, lamba, weights_dict[str(deg)])
     KLR.test_klr(beta, K_in, K_out, dataset)
 
-'''
 # Kernel Ridge Regression
-for gamma, my_lambda in list(itertools.product(gamma_list, lambda_list)):
-    K_in = KLR.get_RBFKernel(training_x, training_x, gamma)
-    K_out = KLR.get_RBFKernel(training_x, testing_x, gamma)
-    beta = KLR.train_KRR(K_in, training_y, my_lambda)
-    KLR.test_klr(beta, K_in, K_out, data)
-'''
+print('---------- RBF KERNEL ----------')
+beta = KLR.train_KRR(K_in, training_y, lamba)
+KLR.test_klr(beta, K_in, K_out, dataset)

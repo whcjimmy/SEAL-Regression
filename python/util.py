@@ -57,6 +57,22 @@ def read_banknote():
     return data
 
 
+def read_heart_disease():
+    data = {}
+    with open('./datasets/heart_disease/heart_disease_df.csv') as f:
+        ff = [x.rstrip().split(',') for x in f.readlines()]
+        ff = [x[1:-1] for x in ff]
+        pdb.set_trace()
+        ff = np.array(ff, dtype = float)
+        np.random.shuffle(ff)
+    data['training_x'] = samples[: n_samples]
+    data['training_y'] = labels[: n_samples]
+    data['testing_x'] = samples[n_samples:]
+    data['testing_y'] = labels[n_samples:]
+
+    return data
+
+
 def read_make_circles():
     data = {}
     n_samples = 400
