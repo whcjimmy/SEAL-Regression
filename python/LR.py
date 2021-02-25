@@ -12,8 +12,6 @@ def train_LR(dataset, learning_rate, iteration_times, approx, weights = None):
     data_size = len(training_x)
     data_dimension = len(training_x[0])
     W = np.zeros(data_dimension)
-    if approx == 2:
-        weights.reverse()
     model_list = []
     for _ in range(iteration_times):
         T = []

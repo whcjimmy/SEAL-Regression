@@ -2,6 +2,8 @@ import pdb
 import json
 import numpy as np
 from sklearn.datasets import load_breast_cancer
+from sklearn.datasets import make_circles, make_moons
+
 
 def read_lbw():
     data = {}
@@ -19,6 +21,7 @@ def read_lbw():
 
     return data
 
+
 def read_pulsar_stars():
     data = {}
     with open('./datasets/pulsar_stars.csv') as f:
@@ -28,17 +31,11 @@ def read_pulsar_stars():
         ff = np.array(ff)
         # np.random.shuffle(ff)
     samples = ff[:, :-1]
-    labels = ff[:, -1]
-    data['training_x'] = samples
-    data['training_y'] = labels
-    data['testing_x'] = samples
-    data['testing_y'] = labels
-    '''
-    data['training_x'] = samples[:1600, :]
-    data['training_y'] = labels[:1600]
-    data['testing_x'] = samples[1600:, :]
-    data['testing_y'] = labels[1600:]
-    '''
+    labels = np.array([1 if x == 1 else -1 for x in ff[:,-1]])
+    data['training_x'] = samples[:14318, :]
+    data['training_y'] = labels[:14318]
+    data['testing_x'] = samples[14318:, :]
+    data['testing_y'] = labels[14318:]
 
     return data
 
@@ -59,12 +56,40 @@ def read_banknote():
 
     return data
 
+
+def read_make_circles():
+    data = {}
+    n_samples = 400
+    samples, labels = make_circles(n_samples = n_samples, noise = 0.5, factor = 0.9, random_state = 1)
+    samples = samples
+    n_samples = int(n_samples * 0.8)
+    data['training_x'] = samples[: n_samples]
+    data['training_y'] = labels[: n_samples]
+    data['testing_x'] = samples[n_samples:]
+    data['testing_y'] = labels[n_samples:]
+
+    return data
+
+
+def read_make_moons():
+    data = {}
+    n_samples = 400
+    samples, labels = make_moons(n_samples = n_samples, noise = 0.2, random_state = 1)
+    n_samples = int(n_samples * 0.8)
+    data['training_x'] = samples[: n_samples]
+    data['training_y'] = labels[: n_samples]
+    data['testing_x'] = samples[n_samples:]
+    data['testing_y'] = labels[n_samples:]
+
+    return data
+
+
 def read_load_breast_cancer():
     data = {}
     dataset = load_breast_cancer()
     samples = dataset.data
     labels = dataset.target
-    
+
     data['training_x'] = samples[:455, :]
     data['training_y'] = labels[:455]
     data['testing_x'] = samples[455:, :]

@@ -12,9 +12,11 @@ from sklearn.linear_model import LogisticRegression
 # Load Datasets
 # dataset = util.read_banknote()
 # dataset = util.read_load_breast_cancer()
+dataset = util.read_make_circles()
+# dataset = util.read_make_moons()
 # dataset = util.read_data_hw2('hw2_lssvm_all.dat')
 # dataset = util.read_data_hw3('./hw3_train.dat', './hw3_test.dat')
-dataset = util.read_pulsar_stars() # use Z-score Standardization
+# dataset = util.read_pulsar_stars() # use Z-score Standardization
 # dataset = util.read_lbw() # use Z-score Standardization
 
 training_x = dataset['training_x']
@@ -27,27 +29,32 @@ testing_y = dataset['testing_y']
 # training_x_col_sums = np.sum(training_x, axis = 0)
 # training_x_norm = training_x / training_x_col_sums[np.newaxis, :]
 
-# Feature Scaling (Standardization)
 '''
+# Feature Scaling (Standardization)
 training_x = stats.zscore(training_x)
 testing_x  = stats.zscore(testing_x)
 '''
 
+'''
 # Feature Scaling (min-max normalization)
 scaler = MinMaxScaler()
 scaler.fit(training_x)
 training_x = scaler.transform(training_x)
 scaler.fit(testing_x)
 testing_x = scaler.transform(testing_x)
+'''
 
 dataset['training_x'] = training_x
 dataset['testing_x'] = testing_x
 
 #Original Load Weights
 weights_dict = util.read_weight('./weights.out')
+for k in weights_dict.keys():
+    weights_dict[k].reverse()
+
 
 # Parameters Settings
-learning_rate = 0.01
+learning_rate = 0.005
 iteration_times = 15
 
 # Logistic Regression
@@ -56,20 +63,17 @@ print('---------- Logistic Regression ----------')
 print('Sklearn Logistic Regression')
 clf = LogisticRegression(random_state=0).fit(training_x, training_y)
 print(clf.score(training_x, training_y), clf.score(testing_x, testing_y))
-'''
 print('Sklearn SGD Classifier')
 clf = SGDClassifier(alpha = 10 * learning_rate).fit(training_x, training_y)
 print(clf.score(training_x, training_y), clf.score(testing_x, testing_y))
 print('Original')
 W = LR.train_LR(dataset, learning_rate, iteration_times, 0)
-# W = np.array([-0.343722, -0.183599, -0.0577481, -0.00499239, -0.0418335, -0.0570311, -0.166774, -0.0540226])
 LR.test_lr(W, dataset)
+'''
 
 # Polynomial Logistic Regression
 for deg in range(3, 11, 4):
     print('Poly degree = ', deg,)
-    W = LR.train_LR(dataset, learning_rate, iteration_times, 1, weights_dict[str(deg)])
-    LR.test_lr(W, dataset)
     W = LR.train_LR(dataset, learning_rate, iteration_times, 2, weights_dict[str(deg)])
     LR.test_lr(W, dataset)
 
@@ -78,10 +82,10 @@ for deg in range(3, 11, 4):
 gamma_list = [32, 2, 0.125]
 lambda_list = [0.001, 0.01, 0.1, 1, 10]
 gamma = 0.125
-lamba = 0.01
+lamba = 10
 power = 2
 
-learning_rate = 0.01
+# learning_rate = 0.01
 
 # Kernel Logistic Regression
 print('---------- Kernel Logistic Regression ----------')
@@ -90,8 +94,10 @@ print('---------- LINEAR KERNEL ----------')
 K_in = KLR.get_Kernel(training_x, training_x, 'linear')
 K_out = KLR.get_Kernel(training_x, testing_x, 'linear')
 
-# beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
-# KLR.test_klr(beta, K_in, K_out, dataset)
+'''
+beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
+KLR.test_klr(beta, K_in, K_out, dataset)
+'''
 
 for deg in range(3, 11, 4):
     print(deg)
@@ -104,8 +110,10 @@ print('---------- POLYNOMIAL KERNEL ----------')
 K_in = KLR.get_Kernel(training_x, training_x, 'polynomial', gamma, power)
 K_out = KLR.get_Kernel(training_x, testing_x, 'polynomial', gamma, power)
 
+'''
 beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
 KLR.test_klr(beta, K_in, K_out, dataset)
+'''
 
 for deg in range(3, 11, 4):
     print(deg)
@@ -117,8 +125,10 @@ print('---------- RBF KERNEL ----------')
 K_in = KLR.get_Kernel(training_x, training_x, 'rbf', gamma)
 K_out = KLR.get_Kernel(training_x, testing_x, 'rbf', gamma)
 
+'''
 beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
 KLR.test_klr(beta, K_in, K_out, dataset)
+'''
 
 for deg in range(3, 11, 4):
     print(deg)

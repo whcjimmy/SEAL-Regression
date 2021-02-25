@@ -24,8 +24,6 @@ def get_Kernel(dataset_1, dataset_2, kernel_type = None, gamma = None, power = N
 def train_KLR(K, training_y, learning_rate, iteration_times, approx, lamba, weights = None):
     data_size = K.shape[0]
     beta = np.zeros(data_size)
-    if approx == 2:
-        weights.reverse()
     for i in range(iteration_times):
         l2_reg = (2 * lamba / data_size) * np.dot(K, beta)
         T = []
