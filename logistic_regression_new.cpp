@@ -206,8 +206,8 @@ int main()
 
     // Init features, labels and weights
     // Init features (rows of f_matrix , cols of f_matrix - 1)
+    int total_rows = f_matrix.size();
     int rows = f_matrix.size();
-    // rows = 11;
     cout << "\nNumber of rows  = " << rows << endl;
     int cols = f_matrix[0].size() - 1;
     cout << "\nNumber of cols  = " << cols << endl;
@@ -235,7 +235,8 @@ int main()
     vector<vector<double>> standard_features = minmax_scaler(features);
 
     // seperate features into two parts
-    int col_A = 4;
+    rows = 736;
+    int col_A = 17;
     int col_B = cols - col_A;
 
     vector<vector<double>> features_A(rows, vector<double>(col_A));
@@ -409,7 +410,7 @@ int main()
 
     // acuracy
     double acc_1 = 0.0, acc_2 = 0.0;
-    for(int i = 0; i < rows; i++) {
+    for(int i = 736; i < total_rows; i++) {
         double tmp_1, tmp_2;
         tmp_1 = vector_dot_product(weights_1, standard_features[i]);
         tmp_2 = vector_dot_product(weights, standard_features[i]);
