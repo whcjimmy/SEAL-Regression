@@ -108,11 +108,15 @@ vector<vector<double>> minmax_scaler(vector<vector<double>> input_matrix)
 
 int main()
 {
+    // int poly_modulus_degree = 32768;
     int poly_modulus_degree = 16384;
+    // int poly_modulus_degree = 8192;
     EncryptionParameters params(scheme_type::ckks);
     params.set_poly_modulus_degree(poly_modulus_degree);
     cout << "MAX BIT COUNT: " << CoeffModulus::MaxBitCount(poly_modulus_degree) << endl;
-    params.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 35, 35, 35, 35, 35, 35, 35, 60}));
+    // params.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 35, 35, 35, 35, 35, 60}));
+    params.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 35, 35, 35, 35, 35, 35, 35, 35, 35, 60}));
+    // params.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {40, 25, 25, 25, 25, 25, 40}));
     SEALContext context(params);
 
     print_parameters(context);
@@ -186,21 +190,24 @@ int main()
     CKKSEncoder ckks_encoder(context);
 
     // Create Scale
+    // double scale = pow(2.0, 35);
     double scale = pow(2.0, 35);
+    // double scale = pow(2.0, 25);
 
     // Time
     chrono::high_resolution_clock::time_point time_start, time_end;
     chrono::milliseconds time_diff;
 
     // read file
-    string filename = "pulsar_stars.csv";
+    // string filename = "pulsar_stars.csv";
+    string filename = "./python/datasets/Heart-Disease-Machine-Learning/data.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
     vector<vector<double>> f_matrix = stringTodoubleMatrix(s_matrix);
 
     // Init features, labels and weights
     // Init features (rows of f_matrix , cols of f_matrix - 1)
     int rows = f_matrix.size();
-    // rows = 10;
+    // rows = 11;
     cout << "\nNumber of rows  = " << rows << endl;
     int cols = f_matrix[0].size() - 1;
     cout << "\nNumber of cols  = " << cols << endl;
@@ -225,19 +232,7 @@ int main()
         // weights[i] = RandomFloat(-2, 2) + 0.00000001;
     }
 
-    for(int i = 0; i < 5; i++) {
-        for(int j = 0; j < 5; j++)
-            cout <<features[i][j] <<" ";
-        cout << endl;
-    }
-
     vector<vector<double>> standard_features = minmax_scaler(features);
-
-    for(int i = 0; i < 5; i++) {
-        for(int j = 0; j < 5; j++)
-            cout <<standard_features[i][j] <<" ";
-        cout << endl;
-    }
 
     // seperate features into two parts
     int col_A = 4;
@@ -264,10 +259,11 @@ int main()
     double poly_deg = 3;
     // double poly_deg = 7;
 
-    vector<double> coeffs = {0.50101, 0.12669, -0.00005, -0.0009};
-    // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
+    vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.00447};
+    // vector<double> coeffs = {0.50040, 0.22933, -0.00022, -0.01026, 0.00001, 0.00021};
+    // vector<double> coeffs = {0.50016, 0.24218, -0.00017, -0.01488, 0.00002, 0.000061, -0.0000009, -0.0000003};
     double learning_rate = 0.01;
-    int iter_times = 15;
+    int iter_times = 10;
     
     // Calculate gradient descents in the plaintext domain
     //
@@ -372,7 +368,7 @@ int main()
             for(int j = 0; j <= poly_deg; j++) {
                 alpha = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
                 ckks_encoder.encode(alpha, scale, alpha_plain);
-
+                
                 evaluator.mod_switch_to_inplace(alpha_plain, wx_powers_cipher[j].parms_id());
                 evaluator.multiply_plain_inplace(wx_powers_cipher[j], alpha_plain);
                 evaluator.rescale_to_next_inplace(wx_powers_cipher[j]);

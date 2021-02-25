@@ -93,17 +93,16 @@ K_out = KLR.get_Kernel(training_x, testing_x, 'linear')
 beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
 KLR.test_klr(beta, K_in, K_out, dataset)
 
-'''
 for deg in range(3, 11, 4):
     print(deg)
     beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 2, lamba, weights_dict[str(deg)])
     KLR.test_klr(beta, K_in, K_out, dataset)
-'''
 
 
 # Polynomial Kernel
 print('---------- POLYNOMIAL KERNEL ----------')
-gamma = 0.5
+learning_rate = 0.001
+gamma = 0.1
 lamba = 0.15
 power = 3
 
@@ -113,17 +112,15 @@ K_out = KLR.get_Kernel(training_x, testing_x, 'polynomial', gamma, power)
 beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
 KLR.test_klr(beta, K_in, K_out, dataset)
 
-'''
 for deg in range(3, 11, 4):
     print(deg)
     beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 2, lamba, weights_dict[str(deg)])
     KLR.test_klr(beta, K_in, K_out, dataset)
-'''
 
 # RBF Kernel
 print('---------- RBF KERNEL ----------')
-# gamma = 0.5
-# lamba = 0.1
+gamma = 0.5
+lamba = 0.15
 
 K_in = KLR.get_Kernel(training_x, training_x, 'rbf', gamma)
 K_out = KLR.get_Kernel(training_x, testing_x, 'rbf', gamma)
@@ -131,12 +128,10 @@ K_out = KLR.get_Kernel(training_x, testing_x, 'rbf', gamma)
 beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
 KLR.test_klr(beta, K_in, K_out, dataset)
 
-'''
 for deg in range(3, 11, 4):
     print(deg)
     beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 2, lamba, weights_dict[str(deg)])
     KLR.test_klr(beta, K_in, K_out, dataset)
-'''
 
 # Kernel Ridge Regression
 print('---------- Kernel Ridge Regression ----------')

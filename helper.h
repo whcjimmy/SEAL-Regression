@@ -603,11 +603,14 @@ vector<vector<string>> CSVtoMatrix(string filename)
         {
             parsedRow.push_back(cell);
         }
+        result_matrix.push_back(parsedRow);
         // Skip first line since it has text instead of numbers
+        /*
         if (line_count != 0)
         {
             result_matrix.push_back(parsedRow);
         }
+        */
         line_count++;
     }
     return result_matrix;

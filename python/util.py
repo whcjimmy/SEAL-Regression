@@ -59,29 +59,25 @@ def read_banknote():
 
 def read_heart_disease():
     data = {}
-    with open('./datasets/Heart-Disease-Machine-Learning/training_x.csv') as f:
+    with open('./datasets/Heart-Disease-Machine-Learning/data.csv') as f:
         ff = [x.rstrip() for x in f.readlines()]
         ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
-        samples = np.array(ff)
+        ff = np.array(ff)
+        np.random.shuffle(ff)
+    samples = ff[:, :-1]
+    labels = np.array([1 if x == 1 else -1 for x in ff[:,-1]])
+
+    data['training_x'] = samples[: 736]
+    data['testing_x'] = samples[736:]
+    data['training_y'] = labels[: 736]
+    data['testing_y'] = labels[736:]
 
     '''
     data['training_x'] = samples
     data['testing_x'] = samples
-    '''
-    data['training_x'] = samples[: 736]
-    data['testing_x'] = samples[736:]
-
-    with open('./datasets/Heart-Disease-Machine-Learning/training_y.csv') as f:
-        ff = [x.rstrip() for x in f.readlines()]
-        ff = [1 if x == 'True' else -1 for x in ff]
-        labels = np.array(ff)
-
-    '''
     data['training_y'] = labels
     data['testing_y'] = labels
     '''
-    data['training_y'] = labels[: 736]
-    data['testing_y'] = labels[736:]
 
     return data
 
