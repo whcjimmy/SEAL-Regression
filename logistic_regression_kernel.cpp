@@ -245,24 +245,17 @@ int main()
 
     // Fill the weights with random numbers (from 1 - 2)
     for (int i = 0; i < total_rows; i++) {
+        // beta[i] = 0;
         beta[i] = RandomFloat(0.0001, 0.0002);
         // beta[i] = RandomFloat(-2, 2) + 0.00000001;
     }
 
     vector<vector<double>> standard_features = minmax_scaler(features);
 
-    /*
-    for(int i = 0; i < total_rows; i++) {
-        cout << i << endl;
-        for(int j = 0; j < total_cols; j++) {
-            cout << standard_features[i][j] << " ";
-        }
-        cout << endl;
-    }
-    */
 
     // Parameters Settings
     int training_rows = 736; // training rows
+    // int training_rows = 10; // training rows
     int testing_rows = total_rows - training_rows;
     beta.resize(training_rows);
 
@@ -300,7 +293,7 @@ int main()
             test_kernel[i][j] = 0;
         }
     }
-
+    
     // -------- LINEAR KERNEL --------
     cout << " -------- LINEAR KERNEL -------- " << endl;
     // calculate kernel_A
@@ -325,25 +318,19 @@ int main()
 
     // Combine two kernels together
     for(int i = 0; i < training_rows; i++) {
-        cout << i << endl;
         for (int j = 0; j < training_rows; j++) { 
             kernel[i][j] = kernel_A[i][j] + kernel_B[i][j];
-            cout << kernel[i][j] << " ";
         }
-        cout << endl;
     }
     
     // Testing Kernel
-    for(int i = training_rows; i < total_rows; i++) {
-        cout << i << endl;
+    for(int i = 0; i < testing_rows; i++) {
         for (int j = 0; j < training_rows; j++) { 
             for(int k = 0; k < total_cols; k++) { 
                 test_kernel[i][j] += 
-                    standard_features[i][k] * standard_features[j][k] + 0.00000001;
+                    standard_features[training_rows + i][k] * standard_features[j][k] + 0.00000001;
             }
-            // cout << test_kernel[i][j] << " ";
         }
-        // cout << endl;
     }
 
     /*
@@ -384,7 +371,7 @@ int main()
         for (int j = 0; j < training_rows; j++) { 
             for(int k = 0; k < total_cols; k++) { 
                 test_kernel[i][j] += 
-                    standard_features[i][k] * standard_features[j][k] + 0.00000001;
+                    standard_features[training_rows + i][k] * standard_features[j][k] + 0.00000001;
             }
             test_kernel[i][j] = test_kernel[i][j] * gamma;
             test_kernel[i][j] = 1 + test_kernel[i][j];
@@ -440,11 +427,11 @@ int main()
     // Test
     for(int i = 0; i < testing_rows; i++) {
         for (int j = 0; j < training_rows; j++) { 
-            for(int k = 0; k < col_B; k++) { 
+            for(int k = 0; k < total_cols; k++) { 
                 test_kernel[i][j] += 
-                    pow(standard_features[i][col_A + k] - standard_features[j][col_A + k], 2);
+                    pow(standard_features[training_rows + i][k] - standard_features[j][k], 2);
             }
-            test_kernel[i][j] = test_kernel[i][j] * gamma;
+            test_kernel[i][j] = -1 * test_kernel[i][j] * gamma;
             test_kernel[i][j] = 1 + test_kernel[i][j] + pow(test_kernel[i][j], 2) / 2;
         }
     }
@@ -467,7 +454,6 @@ int main()
             kernel_B_2_diagonals[i] = get_diagonal(i, kernel_B_2);
         }
     }
-
     
     // Calculate gradient descents in the plaintext domain
 
@@ -477,6 +463,9 @@ int main()
     double b_k, tmp;
 
     for(int iter = 0; iter < iter_times; iter++) {
+        for(int i = 0; i < training_rows; i++) {
+            delta_beta[i] = 0;
+        }
         for(int i = 0; i < training_rows; i++) {
             b_k = vector_dot_product(beta_1, kernel[i]);
             tmp = 0.0;
@@ -498,17 +487,35 @@ int main()
 
         // output results
         cout << "iter " << iter << endl;
-        for(int i = 0; i < training_rows; i++) {
-            cout << beta_1[i] << " ";
+        for(int i = 0; i < 10; i++) {
+            cout << l2_reg[i] * tmp + delta_beta[i]  << " ";
+            // cout << beta_1[i] << " ";
         }
         cout << endl;
-
     }
    
+    /*
+    // acuracy
+    double acc_3 = 0.0;
+    for(int i = 0; i < training_rows; i++) {
+        double tmp_1;
+        tmp_1 = vector_dot_product(beta_1, kernel[i]);
+
+        if(tmp_1 >= 0) {
+            tmp_1 = 1;
+        } else {
+            tmp_1 = -1;
+        }
+
+        if(tmp_1 == labels[i]) acc_3 += 1;
+    }
+    cout << "acc 3 " << acc_3 / training_rows << endl;
+    */
+
     // acuracy
     double acc_3 = 0.0;
     for(int i = 0; i < testing_rows; i++) {
-        double tmp_1, tmp_2;
+        double tmp_1;
         tmp_1 = vector_dot_product(beta_1, test_kernel[i]);
 
         if(tmp_1 >= 0) {
@@ -747,9 +754,10 @@ int main()
         decryptor.decrypt(delta_beta_all_cipher, delta_beta_plain);
         ckks_encoder.decode(delta_beta_plain, delta_beta_decode);
 
-        for(int i = 0; i < training_rows; i++) {
+        for(int i = 0; i < 10; i++) {
             beta[i] = beta[i] - learning_rate * delta_beta_decode[i];
-            cout << beta[i] << " ";
+            // cout << beta[i] << " ";
+            cout << delta_beta_decode[i] << " ";
         }
         cout << endl;
     }
@@ -776,8 +784,8 @@ int main()
             tmp_2 = -1;
         }
 
-        if(tmp_1 == labels[i]) acc_1 += 1;
-        if(tmp_2 == labels[i]) acc_2 += 1;
+        if(tmp_1 == labels[training_rows + i]) acc_1 += 1;
+        if(tmp_2 == labels[training_rows + i]) acc_2 += 1;
     }
     cout << "acc 1 " << acc_1 / testing_rows << endl;
     cout << "acc 2 " << acc_2 / testing_rows << endl;

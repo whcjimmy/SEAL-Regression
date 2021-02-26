@@ -258,8 +258,8 @@ int main()
     }
 
     double lambda = 0.01;
-    // double poly_deg = 3;
-    double poly_deg = 7;
+    double poly_deg = 3;
+    // double poly_deg = 7;
 
     vector<double> coeffs = {0.50101, 0.12668, -0.00005, -0.0009};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
@@ -273,6 +273,10 @@ int main()
     double w_x, tmp;
 
     for(int iter = 0; iter < iter_times; iter++) {
+        for(int i = 0; i < rows; i++) {
+            delta_w[i] = 0;
+        }
+
         for(int i = 0; i < rows; i++) {
             w_x = vector_dot_product(weights_1, standard_features[i]);
             tmp = 0.0;

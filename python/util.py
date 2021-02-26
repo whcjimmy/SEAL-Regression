@@ -64,8 +64,9 @@ def read_heart_disease():
         ff = [x.rstrip() for x in f.readlines()]
         ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
         ff = np.array(ff)
-        # np.random.shuffle(ff)
-    samples = data_preprocess(ff[:, :-1])
+        np.random.shuffle(ff)
+    # samples = data_preprocess(ff[:, :-1])
+    samples = ff[:, :-1]
     labels = np.array([1 if x == 1 else -1 for x in ff[:,-1]])
 
     data['training_x'] = samples[: 736]
@@ -182,10 +183,11 @@ def approx_func(approx, model, data, label, weights = None):
         poly = np.poly1d(weights)
         return poly(value)
     elif approx == 2:
-        t = 0
+        tmp = 0
         for i in range(len(weights)):
-            t = t + weights[i] * (value ** i)
-        return t
+            tmp = tmp + weights[i] * (value ** i)
+        # print(value, sigmoid(value), tmp, weights)
+        return tmp
 
 def data_preprocess(samples):
     scaler = MinMaxScaler()

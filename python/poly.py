@@ -13,8 +13,8 @@ def integrand(x, poly):
     return poly(x) - sigmoid(x)
 
 
-range_min = -10
-range_max = 10
+range_min = -20
+range_max = 20
 
 sigmoid_x = np.array([x/10 for x in range(10 * range_min, 10 * range_max)])
 sigmoid_y = np.array([sigmoid(x) for x in sigmoid_x])
@@ -52,7 +52,7 @@ plt.plot(sigmoid_x, poly_y, label='poly_4')
 '''
 
 # Original Version
-for deg in range(3, 11, 2):
+for deg in range(3, 16, 2):
     print(deg)
     z = np.polyfit(sigmoid_x, sigmoid_y, deg)
     poly = np.poly1d(z)
