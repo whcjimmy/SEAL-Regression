@@ -225,8 +225,6 @@ int main()
     // Init features, labels and weights
     // Init features (rows of f_matrix , cols of f_matrix - 1)
     int rows = f_matrix.size();
-    int test_rows = f_matrix.size() - 736;
-    rows = 736;
     cout << "\nNumber of rows  = " << rows << endl;
     int cols = f_matrix[0].size() - 1;
     cout << "\nNumber of cols  = " << cols << endl;
@@ -254,6 +252,9 @@ int main()
     vector<vector<double>> standard_features = minmax_scaler(features);
 
     // seperate features into two parts
+    int test_rows = f_matrix.size() - 736;
+    rows = 736;
+    beta.resize(rows);
     int col_A = 17;
     int col_B = cols - col_A;
 
@@ -261,9 +262,9 @@ int main()
     vector<vector<double>> kernel_A(rows, vector<double>(rows));
     vector<vector<double>> kernel_B(rows, vector<double>(rows));
     
-    vector<vector<double>> test_kernel(test_rows, vector<double>(test_rows));
-    vector<vector<double>> test_kernel_A(test_rows, vector<double>(test_rows));
-    vector<vector<double>> test_kernel_B(test_rows, vector<double>(test_rows));
+    vector<vector<double>> test_kernel(test_rows, vector<double>(rows));
+    vector<vector<double>> test_kernel_A(test_rows, vector<double>(rows));
+    vector<vector<double>> test_kernel_B(test_rows, vector<double>(rows));
 
     // init to 0
     for(int i = 0; i < rows; i++) {
@@ -274,14 +275,12 @@ int main()
     }
 
     for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < test_rows; j++) { 
+        for (int j = 0; j < rows; j++) { 
             test_kernel_A[i][j] = 0;
             test_kernel_B[i][j] = 0;
         }
     }
 
-    
-    /*
     // -------- LINEAR KERNEL --------
     cout << " -------- LINEAR KERNEL -------- " << endl;
     // calculate kernel_A
@@ -314,7 +313,7 @@ int main()
     // Testing Kernel
     // calculate kernel_A
     for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < test_rows; j++) { 
+        for (int j = 0; j < rows; j++) { 
             for(int k = 0; k < col_A; k++) { 
                 test_kernel_A[i][j] += 
                     standard_features[i][k] * standard_features[j][k] + 0.00000001;
@@ -324,7 +323,7 @@ int main()
 
     // calculate test_kernel_B
     for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < test_rows; j++) { 
+        for (int j = 0; j < rows; j++) { 
             for(int k = 0; k < col_B; k++) { 
                 test_kernel_B[i][j] += 
                     standard_features[i][col_A + k] * standard_features[j][col_A + k] + 0.00000001;
@@ -334,11 +333,10 @@ int main()
 
     // Combine two test_kernels together
     for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < test_rows; j++) { 
+        for (int j = 0; j < rows; j++) { 
             test_kernel[i][j] = test_kernel_A[i][j] + test_kernel_B[i][j];
         }
     }
-    */
 
     /*
     // -------- Polynomial KERNEL --------
@@ -351,7 +349,7 @@ int main()
                 kernel_A[i][j] += 
                     standard_features[i][k] * standard_features[j][k] + 0.00000001;
             }
-            kernel_A[i][j] = kernel_A[i][j] / cols;
+            kernel_A[i][j] = kernel_A[i][j] / 10;
         }
     }
 
@@ -362,7 +360,7 @@ int main()
                 kernel_B[i][j] += 
                     standard_features[i][col_A + k] * standard_features[j][col_A + k] + 0.00000001;
             }
-            kernel_B[i][j] = 1 + kernel_B[i][j] / cols;
+            kernel_B[i][j] = 1 + kernel_B[i][j] / 10;
         }
     }
 
@@ -377,29 +375,29 @@ int main()
     // Test
     // calculate test_kernel_A
     for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < test_rows; j++) { 
+        for (int j = 0; j < rows; j++) { 
             for(int k = 0; k < col_A; k++) { 
                 test_kernel_A[i][j] += 
                     standard_features[i][k] * standard_features[j][k] + 0.00000001;
             }
-            test_kernel_A[i][j] = test_kernel_A[i][j] / cols;
+            test_kernel_A[i][j] = test_kernel_A[i][j] / 10;
         }
     }
 
     // calculate test_kernel_B
     for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < test_rows; j++) { 
+        for (int j = 0; j < rows; j++) { 
             for(int k = 0; k < col_B; k++) { 
                 test_kernel_B[i][j] += 
                     standard_features[i][col_A + k] * standard_features[j][col_A + k] + 0.00000001;
             }
-            test_kernel_B[i][j] = 1 + test_kernel_B[i][j] / cols;
+            test_kernel_B[i][j] = 1 + test_kernel_B[i][j] / 10;
         }
     }
 
     // Combine two test_kernels together
     for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < test_rows; j++) { 
+        for (int j = 0; j < rows; j++) { 
             test_kernel[i][j] = test_kernel_A[i][j] + test_kernel_B[i][j];
             test_kernel[i][j] = pow(test_kernel[i][j], poly_kernel_deg);
         }
@@ -409,6 +407,7 @@ int main()
     bool is_rbf = false;
     vector<vector<double>> kernel_A_2(rows, vector<double>(rows));
     vector<vector<double>> kernel_B_2(rows, vector<double>(rows));
+    /*
     // -------- RBF KERNEL --------
     cout << " -------- RBF KERNEL -------- " << endl;
     is_rbf = true;
@@ -421,7 +420,7 @@ int main()
                 kernel_A[i][j] += 
                     pow(standard_features[i][k] - standard_features[j][k], 2);
             }
-            kernel_A[i][j] = -1 * kernel_A[i][j] / cols;
+            kernel_A[i][j] = -1 * kernel_A[i][j] / 2;
             kernel_A_2[i][j] = kernel_A[i][j] / pow(2, 0.5);
         }
     }
@@ -433,7 +432,7 @@ int main()
                 kernel_B[i][j] += 
                     pow(standard_features[i][col_A + k] - standard_features[j][col_A + k], 2);
             }
-            kernel_B[i][j] = -1 * kernel_B[i][j] / cols;
+            kernel_B[i][j] = -1 * kernel_B[i][j] / 2;
             kernel_B_2[i][j] = kernel_B[i][j] / pow(2, 0.5);
         }
     }
@@ -450,7 +449,7 @@ int main()
     // Test
     // calculate test_kernel_A
     for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < test_rows; j++) { 
+        for (int j = 0; j < rows; j++) { 
             for(int k = 0; k < col_A; k++) { 
                 test_kernel_A[i][j] += 
                     pow(standard_features[i][k] - standard_features[j][k], 2);
@@ -461,7 +460,7 @@ int main()
 
     // calculate test_kernel_B
     for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < test_rows; j++) { 
+        for (int j = 0; j < rows; j++) { 
             for(int k = 0; k < col_B; k++) { 
                 test_kernel_B[i][j] += 
                     pow(standard_features[i][col_A + k] - standard_features[j][col_A + k], 2);
@@ -472,12 +471,12 @@ int main()
 
     // Combine two test_kernels together
     for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < test_rows; j++) { 
+        for (int j = 0; j < rows; j++) { 
             test_kernel[i][j] = test_kernel_A[i][j] + test_kernel_B[i][j];
             test_kernel[i][j] = 1 + test_kernel[i][j] + pow(test_kernel[i][j], 2) / 2;
         }
     }
-
+    */
 
     // diagonal matrix
     vector<vector<double>> kernel_A_diagonals(rows, vector<double>(rows));
@@ -497,14 +496,14 @@ int main()
         }
     }
 
-    double lambda = 0.01;
+    double lambda = 0.15;
     double poly_deg = 3;
     // double poly_deg = 7;
 
     vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.00447};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
     double learning_rate = 0.0001;
-    int iter_times = 15;
+    int iter_times = 10;
     
     // Calculate gradient descents in the plaintext domain
 
@@ -541,6 +540,21 @@ int main()
         cout << endl;
 
     }
+   
+    // acuracy
+    double acc_3 = 0.0;
+    for(int i = 0; i < test_rows; i++) {
+        double tmp_1, tmp_2;
+        tmp_1 = vector_dot_product(beta_1, test_kernel[i]);
+        if(tmp_1 >= 0) {
+            tmp_1 = 1;
+        } else {
+            tmp_1 = -1;
+        }
+
+        if(tmp_1 == labels[736 + i]) acc_3 += 1;
+    }
+    cout << "acc 1 " << acc_3 / test_rows << endl;
 
 
     // Calculate gradient descents in the encrypted domain
@@ -616,14 +630,12 @@ int main()
     vector<Ciphertext> kernel_cipher(rows);  // x
     vector<Ciphertext> kernel_diagonals_cipher(rows);  // x diagonal
 
-    /*
     // LINEAR KERNEL
     for(int i = 0; i < rows; i++) {
         evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_cipher[i]);
         evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
     }
-    */
-
+    
     /*
     // POLYNOMIAL KERNEL
     for(int i = 0; i < rows; i++) {
@@ -649,6 +661,7 @@ int main()
     }
     */
     
+    /*
     // RBF KERNEL
     if(is_rbf == true) {
         vector<Ciphertext> kernel_2_cipher(rows);
@@ -685,6 +698,7 @@ int main()
             evaluator.add_inplace(kernel_diagonals_cipher[i], kernel_2_D_cipher[i]);
         }
     }
+    */
 
     time_end = chrono::high_resolution_clock::now();
     time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
@@ -800,8 +814,8 @@ int main()
         if(tmp_1 == labels[i]) acc_1 += 1;
         if(tmp_2 == labels[i]) acc_2 += 1;
     }
-    cout << "acc 1 " << acc_1 / rows << endl;
-    cout << "acc 2 " << acc_2 / rows << endl;
+    cout << "acc 1 " << acc_1 / test_rows << endl;
+    cout << "acc 2 " << acc_2 / test_rows << endl;
 
     return 0;
 }

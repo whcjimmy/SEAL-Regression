@@ -208,6 +208,7 @@ int main()
     // Init features (rows of f_matrix , cols of f_matrix - 1)
     int total_rows = f_matrix.size();
     int rows = f_matrix.size();
+    int test_rows = f_matrix.size() - 736;
     cout << "\nNumber of rows  = " << rows << endl;
     int cols = f_matrix[0].size() - 1;
     cout << "\nNumber of cols  = " << cols << endl;
@@ -257,12 +258,12 @@ int main()
     }
 
     double lambda = 0.01;
-    double poly_deg = 3;
-    // double poly_deg = 7;
+    // double poly_deg = 3;
+    double poly_deg = 7;
 
-    vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.00447};
+    // vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.00447};
     // vector<double> coeffs = {0.50040, 0.22933, -0.00022, -0.01026, 0.00001, 0.00021};
-    // vector<double> coeffs = {0.50016, 0.24218, -0.00017, -0.01488, 0.00002, 0.000061, -0.0000009, -0.0000003};
+    vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
     double learning_rate = 0.01;
     int iter_times = 10;
     
@@ -429,8 +430,8 @@ int main()
         if(tmp_1 == labels[i]) acc_1 += 1;
         if(tmp_2 == labels[i]) acc_2 += 1;
     }
-    cout << "acc 1 " << acc_1 / rows << endl;
-    cout << "acc 2 " << acc_2 / rows << endl;
+    cout << "acc 1 " << acc_1 / test_rows << endl;
+    cout << "acc 2 " << acc_2 / test_rows << endl;
 
     return 0;
 }

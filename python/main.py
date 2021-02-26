@@ -83,7 +83,7 @@ iteration_times = 10
 
 # Kernel Logistic Regression
 print('---------- Kernel Logistic Regression ----------')
-lamba = 0.1
+lamba = 0.15
 
 # Linear Kernel
 print('---------- LINEAR KERNEL ----------')
