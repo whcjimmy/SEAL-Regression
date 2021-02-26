@@ -25,27 +25,6 @@ training_y = dataset['training_y']
 testing_x = dataset['testing_x']
 testing_y = dataset['testing_y']
 
-
-# Normalize
-# training_x_col_sums = np.sum(training_x, axis = 0)
-# training_x_norm = training_x / training_x_col_sums[np.newaxis, :]
-
-'''
-# Feature Scaling (Standardization)
-training_x = stats.zscore(training_x)
-testing_x  = stats.zscore(testing_x)
-'''
-
-# Feature Scaling (min-max normalization)
-scaler = MinMaxScaler()
-scaler.fit(training_x)
-training_x = scaler.transform(training_x)
-scaler.fit(testing_x)
-testing_x = scaler.transform(testing_x)
-
-dataset['training_x'] = training_x
-dataset['testing_x'] = testing_x
-
 #Original Load Weights
 weights_dict = util.read_weight('./weights.out')
 for k in weights_dict.keys():
@@ -89,6 +68,7 @@ lamba = 0.15
 print('---------- LINEAR KERNEL ----------')
 K_in = KLR.get_Kernel(training_x, training_x, 'linear')
 K_out = KLR.get_Kernel(training_x, testing_x, 'linear')
+pdb.set_trace()
 
 beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
 KLR.test_klr(beta, K_in, K_out, dataset)
@@ -97,6 +77,7 @@ for deg in range(3, 11, 4):
     print(deg)
     beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 2, lamba, weights_dict[str(deg)])
     KLR.test_klr(beta, K_in, K_out, dataset)
+    pdb.set_trace()
 
 
 # Polynomial Kernel

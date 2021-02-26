@@ -1,6 +1,7 @@
 import pdb
 import json
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.datasets import load_breast_cancer
 from sklearn.datasets import make_circles, make_moons
 
@@ -63,8 +64,8 @@ def read_heart_disease():
         ff = [x.rstrip() for x in f.readlines()]
         ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
         ff = np.array(ff)
-        np.random.shuffle(ff)
-    samples = ff[:, :-1]
+        # np.random.shuffle(ff)
+    samples = data_preprocess(ff[:, :-1])
     labels = np.array([1 if x == 1 else -1 for x in ff[:,-1]])
 
     data['training_x'] = samples[: 736]
@@ -185,3 +186,30 @@ def approx_func(approx, model, data, label, weights = None):
         for i in range(len(weights)):
             t = t + weights[i] * (value ** i)
         return t
+
+def data_preprocess(samples):
+    scaler = MinMaxScaler()
+    scaler.fit(samples)
+    samples = scaler.transform(samples)
+
+    return samples
+    '''
+    # Normalize
+    training_x_col_sums = np.sum(training_x, axis = 0)
+    training_x_norm = training_x / training_x_col_sums[np.newaxis, :]
+    '''
+
+    '''
+    # Feature Scaling (Standardization)
+    training_x = stats.zscore(training_x)
+    testing_x  = stats.zscore(testing_x)
+    '''
+
+    '''
+    # Feature Scaling (min-max normalization)
+    scaler = MinMaxScaler()
+    scaler.fit(training_x)
+    training_x = scaler.transform(training_x)
+    scaler.fit(testing_x)
+    testing_x = scaler.transform(testing_x)
+    '''

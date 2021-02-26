@@ -216,7 +216,7 @@ int main()
     chrono::high_resolution_clock::time_point time_start, time_end;
     chrono::milliseconds time_diff;
 
-    // read file
+    // Read File
     // string filename = "pulsar_stars.csv";
     string filename = "./python/datasets/Heart-Disease-Machine-Learning/data.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
@@ -224,68 +224,88 @@ int main()
 
     // Init features, labels and weights
     // Init features (rows of f_matrix , cols of f_matrix - 1)
-    int rows = f_matrix.size();
-    cout << "\nNumber of rows  = " << rows << endl;
-    int cols = f_matrix[0].size() - 1;
-    cout << "\nNumber of cols  = " << cols << endl;
+    int total_rows = f_matrix.size();
+    cout << "\nNumber of rows  = " << total_rows << endl;
+    int total_cols = f_matrix[0].size() - 1;
+    cout << "\nNumber of cols  = " << total_cols << endl;
 
-    vector<vector<double>> features(rows, vector<double>(cols));
+    vector<vector<double>> features(total_rows, vector<double>(total_cols));
     // Init labels (rows of f_matrix)
-    vector<double> labels(rows);
+    vector<double> labels(total_rows);
     // Init weight vector with zeros (cols of features)
-    vector<double> beta(rows);
+    vector<double> beta(total_rows);
 
     // Fill the features matrix and labels vector
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
+    for (int i = 0; i < total_rows; i++) {
+        for (int j = 0; j < total_cols; j++) {
             features[i][j] = f_matrix[i][j];
         }
-        labels[i] = f_matrix[i][cols];
+        labels[i] = f_matrix[i][total_cols];
     }
 
     // Fill the weights with random numbers (from 1 - 2)
-    for (int i = 0; i < rows; i++) {
-        beta[i] = RandomFloat(0.0001, 0.0005);
+    for (int i = 0; i < total_rows; i++) {
+        beta[i] = RandomFloat(0.0001, 0.0002);
         // beta[i] = RandomFloat(-2, 2) + 0.00000001;
     }
 
     vector<vector<double>> standard_features = minmax_scaler(features);
 
-    // seperate features into two parts
-    int test_rows = f_matrix.size() - 736;
-    rows = 736;
-    beta.resize(rows);
-    int col_A = 17;
-    int col_B = cols - col_A;
+    /*
+    for(int i = 0; i < total_rows; i++) {
+        cout << i << endl;
+        for(int j = 0; j < total_cols; j++) {
+            cout << standard_features[i][j] << " ";
+        }
+        cout << endl;
+    }
+    */
 
-    vector<vector<double>> kernel(rows, vector<double>(rows));
-    vector<vector<double>> kernel_A(rows, vector<double>(rows));
-    vector<vector<double>> kernel_B(rows, vector<double>(rows));
+    // Parameters Settings
+    int training_rows = 736; // training rows
+    int testing_rows = total_rows - training_rows;
+    beta.resize(training_rows);
+
+    int col_A = 17;
+    int col_B = total_cols - col_A;
+
+    double learning_rate = 0.0004;
+    int iter_times = 10;
+    double lambda = 0.15;
+    double gamma  = 0.1;
+    int poly_kernel_deg = 3;
+
+    double poly_deg = 3;
+    // double poly_deg = 7;
+    vector<double> coeffs = {0.50101, 0.12668, -0.00005, -0.0009};
+    // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
     
-    vector<vector<double>> test_kernel(test_rows, vector<double>(rows));
-    vector<vector<double>> test_kernel_A(test_rows, vector<double>(rows));
-    vector<vector<double>> test_kernel_B(test_rows, vector<double>(rows));
+    // seperate features into two parts
+    vector<vector<double>> kernel(training_rows, vector<double>(training_rows));
+    vector<vector<double>> kernel_A(training_rows, vector<double>(training_rows));
+    vector<vector<double>> kernel_B(training_rows, vector<double>(training_rows));
+    
+    vector<vector<double>> test_kernel(testing_rows, vector<double>(training_rows));
 
     // init to 0
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < rows; j++) { 
+    for(int i = 0; i < training_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
             kernel_A[i][j] = 0;
             kernel_B[i][j] = 0;
         }
     }
 
-    for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < rows; j++) { 
-            test_kernel_A[i][j] = 0;
-            test_kernel_B[i][j] = 0;
+    for(int i = 0; i < testing_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
+            test_kernel[i][j] = 0;
         }
     }
 
     // -------- LINEAR KERNEL --------
     cout << " -------- LINEAR KERNEL -------- " << endl;
     // calculate kernel_A
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < rows; j++) { 
+    for(int i = 0; i < training_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
             for(int k = 0; k < col_A; k++) { 
                 kernel_A[i][j] += 
                     standard_features[i][k] * standard_features[j][k] + 0.00000001;
@@ -294,8 +314,8 @@ int main()
     }
 
     // calculate kernel_B
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < rows; j++) { 
+    for(int i = 0; i < training_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
             for(int k = 0; k < col_B; k++) { 
                 kernel_B[i][j] += 
                     standard_features[i][col_A + k] * standard_features[j][col_A + k] + 0.00000001;
@@ -304,142 +324,113 @@ int main()
     }
 
     // Combine two kernels together
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < rows; j++) { 
+    for(int i = 0; i < training_rows; i++) {
+        cout << i << endl;
+        for (int j = 0; j < training_rows; j++) { 
             kernel[i][j] = kernel_A[i][j] + kernel_B[i][j];
+            cout << kernel[i][j] << " ";
         }
+        cout << endl;
     }
     
     // Testing Kernel
-    // calculate kernel_A
-    for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < rows; j++) { 
-            for(int k = 0; k < col_A; k++) { 
-                test_kernel_A[i][j] += 
+    for(int i = training_rows; i < total_rows; i++) {
+        cout << i << endl;
+        for (int j = 0; j < training_rows; j++) { 
+            for(int k = 0; k < total_cols; k++) { 
+                test_kernel[i][j] += 
                     standard_features[i][k] * standard_features[j][k] + 0.00000001;
             }
+            // cout << test_kernel[i][j] << " ";
         }
-    }
-
-    // calculate test_kernel_B
-    for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < rows; j++) { 
-            for(int k = 0; k < col_B; k++) { 
-                test_kernel_B[i][j] += 
-                    standard_features[i][col_A + k] * standard_features[j][col_A + k] + 0.00000001;
-            }
-        }
-    }
-
-    // Combine two test_kernels together
-    for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < rows; j++) { 
-            test_kernel[i][j] = test_kernel_A[i][j] + test_kernel_B[i][j];
-        }
+        // cout << endl;
     }
 
     /*
     // -------- Polynomial KERNEL --------
     cout << " -------- Polynomial KERNEL -------- " << endl;
-    int poly_kernel_deg = 3;
     // calculate kernel_A
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < rows; j++) { 
+    for(int i = 0; i < training_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
             for(int k = 0; k < col_A; k++) { 
                 kernel_A[i][j] += 
                     standard_features[i][k] * standard_features[j][k] + 0.00000001;
             }
-            kernel_A[i][j] = kernel_A[i][j] / 10;
+            kernel_A[i][j] = kernel_A[i][j] * gamma;
         }
     }
 
     // calculate kernel_B
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < rows; j++) { 
+    for(int i = 0; i < training_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
             for(int k = 0; k < col_B; k++) { 
                 kernel_B[i][j] += 
                     standard_features[i][col_A + k] * standard_features[j][col_A + k] + 0.00000001;
             }
-            kernel_B[i][j] = 1 + kernel_B[i][j] / 10;
+            kernel_B[i][j] = 1 + kernel_B[i][j] * gamma;
         }
     }
 
     // Combine two kernels together
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < rows; j++) { 
+    for(int i = 0; i < training_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
             kernel[i][j] = kernel_A[i][j] + kernel_B[i][j];
             kernel[i][j] = pow(kernel[i][j], poly_kernel_deg);
         }
     }
        
     // Test
-    // calculate test_kernel_A
-    for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < rows; j++) { 
-            for(int k = 0; k < col_A; k++) { 
-                test_kernel_A[i][j] += 
+    for(int i = 0; i < testing_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
+            for(int k = 0; k < total_cols; k++) { 
+                test_kernel[i][j] += 
                     standard_features[i][k] * standard_features[j][k] + 0.00000001;
             }
-            test_kernel_A[i][j] = test_kernel_A[i][j] / 10;
-        }
-    }
-
-    // calculate test_kernel_B
-    for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < rows; j++) { 
-            for(int k = 0; k < col_B; k++) { 
-                test_kernel_B[i][j] += 
-                    standard_features[i][col_A + k] * standard_features[j][col_A + k] + 0.00000001;
-            }
-            test_kernel_B[i][j] = 1 + test_kernel_B[i][j] / 10;
-        }
-    }
-
-    // Combine two test_kernels together
-    for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < rows; j++) { 
-            test_kernel[i][j] = test_kernel_A[i][j] + test_kernel_B[i][j];
+            test_kernel[i][j] = test_kernel[i][j] * gamma;
+            test_kernel[i][j] = 1 + test_kernel[i][j];
             test_kernel[i][j] = pow(test_kernel[i][j], poly_kernel_deg);
         }
     }
     */
 
+
     bool is_rbf = false;
-    vector<vector<double>> kernel_A_2(rows, vector<double>(rows));
-    vector<vector<double>> kernel_B_2(rows, vector<double>(rows));
+    vector<vector<double>> kernel_A_2(training_rows, vector<double>(training_rows));
+    vector<vector<double>> kernel_B_2(training_rows, vector<double>(training_rows));
     /*
     // -------- RBF KERNEL --------
     cout << " -------- RBF KERNEL -------- " << endl;
     is_rbf = true;
-    vector<vector<double>> kernel_2(rows, vector<double>(rows));
+    gamma = 0.5;
+    vector<vector<double>> kernel_2(training_rows, vector<double>(training_rows));
 
     // calculate kernel_A
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < rows; j++) { 
+    for(int i = 0; i < training_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
             for(int k = 0; k < col_A; k++) { 
                 kernel_A[i][j] += 
                     pow(standard_features[i][k] - standard_features[j][k], 2);
             }
-            kernel_A[i][j] = -1 * kernel_A[i][j] / 2;
+            kernel_A[i][j] = -1 * kernel_A[i][j] * gamma;
             kernel_A_2[i][j] = kernel_A[i][j] / pow(2, 0.5);
         }
     }
 
     // calculate kernel_B
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < rows; j++) { 
+    for(int i = 0; i < training_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
             for(int k = 0; k < col_B; k++) { 
                 kernel_B[i][j] += 
                     pow(standard_features[i][col_A + k] - standard_features[j][col_A + k], 2);
             }
-            kernel_B[i][j] = -1 * kernel_B[i][j] / 2;
+            kernel_B[i][j] = -1 * kernel_B[i][j] * gamma;
             kernel_B_2[i][j] = kernel_B[i][j] / pow(2, 0.5);
         }
     }
 
     // Combine two kernels together
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < rows; j++) { 
+    for(int i = 0; i < training_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
             kernel[i][j] = kernel_A[i][j] + kernel_B[i][j];
             kernel_2[i][j] = kernel_A_2[i][j] + kernel_B_2[i][j];
             kernel[i][j] = 1 + kernel[i][j] + pow(kernel_2[i][j], 2);
@@ -447,94 +438,67 @@ int main()
     }
     
     // Test
-    // calculate test_kernel_A
-    for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < rows; j++) { 
-            for(int k = 0; k < col_A; k++) { 
-                test_kernel_A[i][j] += 
-                    pow(standard_features[i][k] - standard_features[j][k], 2);
-            }
-            test_kernel_A[i][j] = -1 * test_kernel_A[i][j] / cols;
-        }
-    }
-
-    // calculate test_kernel_B
-    for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < rows; j++) { 
+    for(int i = 0; i < testing_rows; i++) {
+        for (int j = 0; j < training_rows; j++) { 
             for(int k = 0; k < col_B; k++) { 
-                test_kernel_B[i][j] += 
+                test_kernel[i][j] += 
                     pow(standard_features[i][col_A + k] - standard_features[j][col_A + k], 2);
             }
-            test_kernel_B[i][j] = -1 * test_kernel_B[i][j] / cols;
-        }
-    }
-
-    // Combine two test_kernels together
-    for(int i = 0; i < test_rows; i++) {
-        for (int j = 0; j < rows; j++) { 
-            test_kernel[i][j] = test_kernel_A[i][j] + test_kernel_B[i][j];
+            test_kernel[i][j] = test_kernel[i][j] * gamma;
             test_kernel[i][j] = 1 + test_kernel[i][j] + pow(test_kernel[i][j], 2) / 2;
         }
     }
     */
 
     // diagonal matrix
-    vector<vector<double>> kernel_A_diagonals(rows, vector<double>(rows));
-    vector<vector<double>> kernel_B_diagonals(rows, vector<double>(rows));
-    vector<vector<double>> kernel_A_2_diagonals(rows, vector<double>(rows));
-    vector<vector<double>> kernel_B_2_diagonals(rows, vector<double>(rows));
+    vector<vector<double>> kernel_A_diagonals(training_rows, vector<double>(training_rows));
+    vector<vector<double>> kernel_B_diagonals(training_rows, vector<double>(training_rows));
+    vector<vector<double>> kernel_A_2_diagonals(training_rows, vector<double>(training_rows));
+    vector<vector<double>> kernel_B_2_diagonals(training_rows, vector<double>(training_rows));
 
-    for (int i = 0; i < rows; i++) {
+    for (int i = 0; i < training_rows; i++) {
         kernel_A_diagonals[i] = get_diagonal(i, kernel_A);
         kernel_B_diagonals[i] = get_diagonal(i, kernel_B);
     }
 
     if(is_rbf == true) {
-        for(int i = 0; i < rows; i++) {
+        for(int i = 0; i < training_rows; i++) {
             kernel_A_2_diagonals[i] = get_diagonal(i, kernel_A_2);
             kernel_B_2_diagonals[i] = get_diagonal(i, kernel_B_2);
         }
     }
 
-    double lambda = 0.15;
-    double poly_deg = 3;
-    // double poly_deg = 7;
-
-    vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.00447};
-    // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
-    double learning_rate = 0.0001;
-    int iter_times = 10;
     
     // Calculate gradient descents in the plaintext domain
 
     vector<double> beta_1 = beta;
-    vector<double> delta_beta(rows, 0.0);
-    vector<double> l2_reg(rows, 0.0);
+    vector<double> delta_beta(training_rows, 0.0);
+    vector<double> l2_reg(training_rows, 0.0);
     double b_k, tmp;
 
     for(int iter = 0; iter < iter_times; iter++) {
-        for(int i = 0; i < rows; i++) {
+        for(int i = 0; i < training_rows; i++) {
             b_k = vector_dot_product(beta_1, kernel[i]);
             tmp = 0.0;
 
             for(int j = 0; j <= poly_deg; j++) {
-                tmp = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
+                tmp = coeffs[j] * pow(-1 * labels[i], j + 1) / training_rows;
                 tmp = tmp * pow(b_k, j);
-                for(int k = 0; k < rows; k++) {
+                for(int k = 0; k < training_rows; k++) {
                     delta_beta[k] += tmp * kernel[i][k];
                 }
             }
         }
 
         l2_reg = linear_transformation(kernel, beta_1);
-        tmp = 2 * lambda / rows;
-        for(int i = 0; i < rows; i++) {
+        tmp = 2 * lambda / training_rows;
+        for(int i = 0; i < training_rows; i++) {
             beta_1[i] = beta_1[i] - learning_rate * (l2_reg[i] * tmp + delta_beta[i]);
         }
 
         // output results
         cout << "iter " << iter << endl;
-        for(int i = 0; i < rows; i++) {
+        for(int i = 0; i < training_rows; i++) {
             cout << beta_1[i] << " ";
         }
         cout << endl;
@@ -543,18 +507,19 @@ int main()
    
     // acuracy
     double acc_3 = 0.0;
-    for(int i = 0; i < test_rows; i++) {
+    for(int i = 0; i < testing_rows; i++) {
         double tmp_1, tmp_2;
         tmp_1 = vector_dot_product(beta_1, test_kernel[i]);
+
         if(tmp_1 >= 0) {
             tmp_1 = 1;
         } else {
             tmp_1 = -1;
         }
 
-        if(tmp_1 == labels[736 + i]) acc_3 += 1;
+        if(tmp_1 == labels[training_rows + i]) acc_3 += 1;
     }
-    cout << "acc 1 " << acc_3 / test_rows << endl;
+    cout << "acc 3 " << acc_3 / testing_rows << endl;
 
 
     // Calculate gradient descents in the encrypted domain
@@ -563,12 +528,12 @@ int main()
     time_start = chrono::high_resolution_clock::now();
 
     cout << "ENCODING......\n";
-    vector<Plaintext> kernel_A_plain(rows), kernel_B_plain(rows);
-    vector<Plaintext> kernel_A_D_plain(rows), kernel_B_D_plain(rows);
-    vector<Plaintext> kernel_A_2_plain(rows), kernel_B_2_plain(rows);
-    vector<Plaintext> kernel_A_2_D_plain(rows), kernel_B_2_D_plain(rows);
+    vector<Plaintext> kernel_A_plain(training_rows), kernel_B_plain(training_rows);
+    vector<Plaintext> kernel_A_D_plain(training_rows), kernel_B_D_plain(training_rows);
+    vector<Plaintext> kernel_A_2_plain(training_rows), kernel_B_2_plain(training_rows);
+    vector<Plaintext> kernel_A_2_D_plain(training_rows), kernel_B_2_D_plain(training_rows);
 
-    for (int i = 0; i < rows; i++) {
+    for (int i = 0; i < training_rows; i++) {
         ckks_encoder.encode(kernel_A[i], scale, kernel_A_plain[i]);
         ckks_encoder.encode(kernel_B[i], scale, kernel_B_plain[i]);
         ckks_encoder.encode(kernel_A_diagonals[i], scale, kernel_A_D_plain[i]);
@@ -576,7 +541,7 @@ int main()
     }
 
     if(is_rbf == true) {
-        for (int i = 0; i < rows; i++) {
+        for (int i = 0; i < training_rows; i++) {
             ckks_encoder.encode(kernel_A_2[i], scale, kernel_A_2_plain[i]);
             ckks_encoder.encode(kernel_B_2[i], scale, kernel_B_2_plain[i]);
             ckks_encoder.encode(kernel_A_2_diagonals[i], scale, kernel_A_2_D_plain[i]);
@@ -586,18 +551,18 @@ int main()
 
     time_end = chrono::high_resolution_clock::now();
     time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
-    cout << rows << " total encoding time :\t" << time_diff.count() << " milliseconds" << endl;
+    cout << training_rows << " total encoding time :\t" << time_diff.count() << " milliseconds" << endl;
 
     // --------------- ENCRYPTNG ------------------
     time_start = chrono::high_resolution_clock::now();
 
     cout << "ENCRYPTING......\n";
-    vector<Ciphertext> kernel_A_cipher(rows), kernel_B_cipher(rows);
-    vector<Ciphertext> kernel_A_D_cipher(rows), kernel_B_D_cipher(rows);
-    vector<Ciphertext> kernel_A_2_cipher(rows), kernel_B_2_cipher(rows);
-    vector<Ciphertext> kernel_A_2_D_cipher(rows), kernel_B_2_D_cipher(rows);
+    vector<Ciphertext> kernel_A_cipher(training_rows), kernel_B_cipher(training_rows);
+    vector<Ciphertext> kernel_A_D_cipher(training_rows), kernel_B_D_cipher(training_rows);
+    vector<Ciphertext> kernel_A_2_cipher(training_rows), kernel_B_2_cipher(training_rows);
+    vector<Ciphertext> kernel_A_2_D_cipher(training_rows), kernel_B_2_D_cipher(training_rows);
 
-    for (int i = 0; i < rows; i++) {
+    for (int i = 0; i < training_rows; i++) {
         encryptor.encrypt(kernel_A_plain[i], kernel_A_cipher[i]);
         encryptor.encrypt(kernel_B_plain[i], kernel_B_cipher[i]);
         encryptor.encrypt(kernel_A_D_plain[i], kernel_A_D_cipher[i]);
@@ -605,7 +570,7 @@ int main()
     }
 
     if(is_rbf == true) {
-        for (int i = 0; i < rows; i++) {
+        for (int i = 0; i < training_rows; i++) {
             encryptor.encrypt(kernel_A_2_plain[i], kernel_A_2_cipher[i]);
             encryptor.encrypt(kernel_B_2_plain[i], kernel_B_2_cipher[i]);
             encryptor.encrypt(kernel_A_2_D_plain[i], kernel_A_2_D_cipher[i]);
@@ -615,7 +580,7 @@ int main()
 
     time_end = chrono::high_resolution_clock::now();
     time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
-    cout << rows << " total encryption time :\t" << time_diff.count() << " milliseconds" << endl;
+    cout << training_rows << " total encryption time :\t" << time_diff.count() << " milliseconds" << endl;
    
     // --------------- CALCULATTNG ------------------
     time_start = chrono::high_resolution_clock::now();
@@ -627,24 +592,24 @@ int main()
     encryptor.encrypt(one_plain, one_cipher);
 
     cout << "CALCULATING......\n";
-    vector<Ciphertext> kernel_cipher(rows);  // x
-    vector<Ciphertext> kernel_diagonals_cipher(rows);  // x diagonal
+    vector<Ciphertext> kernel_cipher(training_rows);  // x
+    vector<Ciphertext> kernel_diagonals_cipher(training_rows);  // x diagonal
 
     // LINEAR KERNEL
-    for(int i = 0; i < rows; i++) {
+    for(int i = 0; i < training_rows; i++) {
         evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_cipher[i]);
         evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
     }
     
     /*
     // POLYNOMIAL KERNEL
-    for(int i = 0; i < rows; i++) {
+    for(int i = 0; i < training_rows; i++) {
         evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_cipher[i]);
         evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
     }
     vector<Ciphertext> kernel_powers_cipher(poly_kernel_deg);
     vector<Ciphertext> kernel_D_powers_cipher(poly_kernel_deg);
-    for(int i = 0; i < rows; i++) {
+    for(int i = 0; i < training_rows; i++) {
         // original
         compute_all_powers(kernel_cipher[i], poly_kernel_deg, evaluator, relin_keys, kernel_powers_cipher);
         kernel_cipher[i] = kernel_powers_cipher[poly_kernel_deg];
@@ -664,9 +629,9 @@ int main()
     /*
     // RBF KERNEL
     if(is_rbf == true) {
-        vector<Ciphertext> kernel_2_cipher(rows);
-        vector<Ciphertext> kernel_2_D_cipher(rows);
-        for(int i = 0; i < rows; i++) {
+        vector<Ciphertext> kernel_2_cipher(training_rows);
+        vector<Ciphertext> kernel_2_D_cipher(training_rows);
+        for(int i = 0; i < training_rows; i++) {
             // original
             evaluator.add(kernel_A_2_cipher[i], kernel_B_2_cipher[i], kernel_2_cipher[i]);
             evaluator.multiply_inplace(kernel_2_cipher[i], kernel_2_cipher[i]);
@@ -702,7 +667,7 @@ int main()
 
     time_end = chrono::high_resolution_clock::now();
     time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
-    cout << rows << " total kernel computation time :\t" << time_diff.count() << " milliseconds" << endl;
+    cout << training_rows << " total kernel computation time :\t" << time_diff.count() << " milliseconds" << endl;
 
 
     // --------------- CALCULATTNG ------------------
@@ -713,22 +678,22 @@ int main()
     double alpha;
     Plaintext alpha_plain, l2_reg_alpha_plain, beta_plain;
     Ciphertext x_cipher, beta_cipher, beta_kernel_cipher, delta_beta_all_cipher, l2_reg_cipher;
-    vector<Ciphertext> delta_beta_cipher(rows);
+    vector<Ciphertext> delta_beta_cipher(training_rows);
     vector<Ciphertext> bk_powers_cipher(poly_deg);
     // used when decoding
     Plaintext delta_beta_plain;
-    vector<double> delta_beta_decode(cols);
+    vector<double> delta_beta_decode(total_cols);
 
     time_start = chrono::high_resolution_clock::now();
 
-    double l2_reg_alpha = 2.0 * lambda / rows;
+    double l2_reg_alpha = 2.0 * lambda / training_rows;
     ckks_encoder.encode(l2_reg_alpha, scale, l2_reg_alpha_plain);
     
 
     for(int iter = 0; iter < iter_times; iter++) {
         cout << "iter " << iter << endl;
         ckks_encoder.encode(beta, scale, beta_plain);
-        for(int i = 0; i < rows; i++) {
+        for(int i = 0; i < training_rows; i++) {
             x_cipher = kernel_cipher[i];
             evaluator.mod_switch_to_inplace(beta_plain, x_cipher.parms_id());
 
@@ -740,7 +705,7 @@ int main()
             bk_powers_cipher[0] = one_cipher;
 
             for(int j = 0; j <= poly_deg; j++) {
-                alpha = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
+                alpha = coeffs[j] * pow(-1 * labels[i], j + 1) / training_rows;
                 ckks_encoder.encode(alpha, scale, alpha_plain);
 
                 evaluator.mod_switch_to_inplace(alpha_plain, bk_powers_cipher[j].parms_id());
@@ -782,7 +747,7 @@ int main()
         decryptor.decrypt(delta_beta_all_cipher, delta_beta_plain);
         ckks_encoder.decode(delta_beta_plain, delta_beta_decode);
 
-        for(int i = 0; i < rows; i++) {
+        for(int i = 0; i < training_rows; i++) {
             beta[i] = beta[i] - learning_rate * delta_beta_decode[i];
             cout << beta[i] << " ";
         }
@@ -791,11 +756,11 @@ int main()
 
     time_end = chrono::high_resolution_clock::now();
     time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
-    cout << rows << " total execution time :\t" << time_diff.count() << " milliseconds" << endl;
+    cout << training_rows << " total execution time :\t" << time_diff.count() << " milliseconds" << endl;
 
     // acuracy
     double acc_1 = 0.0, acc_2 = 0.0;
-    for(int i = 0; i < test_rows; i++) {
+    for(int i = 0; i < testing_rows; i++) {
         double tmp_1, tmp_2;
         tmp_1 = vector_dot_product(beta_1, test_kernel[i]);
         tmp_2 = vector_dot_product(beta, test_kernel[i]);
@@ -814,8 +779,8 @@ int main()
         if(tmp_1 == labels[i]) acc_1 += 1;
         if(tmp_2 == labels[i]) acc_2 += 1;
     }
-    cout << "acc 1 " << acc_1 / test_rows << endl;
-    cout << "acc 2 " << acc_2 / test_rows << endl;
+    cout << "acc 1 " << acc_1 / testing_rows << endl;
+    cout << "acc 2 " << acc_2 / testing_rows << endl;
 
     return 0;
 }
