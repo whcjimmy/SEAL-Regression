@@ -1,6 +1,7 @@
 import pdb
 import json
 import numpy as np
+from scipy import stats
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.datasets import load_breast_cancer
 from sklearn.datasets import make_circles, make_moons
@@ -65,8 +66,8 @@ def read_heart_disease():
         ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
         ff = np.array(ff)
         np.random.shuffle(ff)
-    # samples = data_preprocess(ff[:, :-1])
-    samples = ff[:, :-1]
+    samples = data_preprocess(ff[:, :-1], 2)
+    # samples = ff[:, :-1]
     labels = np.array([1 if x == 1 else -1 for x in ff[:,-1]])
 
     data['training_x'] = samples[: 736]
@@ -74,12 +75,21 @@ def read_heart_disease():
     data['training_y'] = labels[: 736]
     data['testing_y'] = labels[736:]
 
-    '''
-    data['training_x'] = samples
-    data['testing_x'] = samples
-    data['training_y'] = labels
-    data['testing_y'] = labels
-    '''
+    return data
+
+
+def read_load_breast_cancer():
+    data = {}
+    dataset = load_breast_cancer()
+    samples = dataset.data
+    labels = dataset.target
+    samples = data_preprocess(samples, 2)
+    labels = np.array([1 if x == 1 else -1 for x in labels])
+
+    data['training_x'] = samples[:364, :]
+    data['training_y'] = labels[:364]
+    data['testing_x'] = samples[364:, :]
+    data['testing_y'] = labels[364:]
 
     return data
 
@@ -111,59 +121,6 @@ def read_make_moons():
     return data
 
 
-def read_load_breast_cancer():
-    data = {}
-    dataset = load_breast_cancer()
-    samples = dataset.data
-    labels = dataset.target
-
-    data['training_x'] = samples[:455, :]
-    data['training_y'] = labels[:455]
-    data['testing_x'] = samples[455:, :]
-    data['testing_y'] = labels[455:]
-
-    return data
-
-
-def read_data_hw3(train_filename, test_filename):
-    data = {}
-    f = open(train_filename, 'r')
-    ff = [x.lstrip().rstrip() for x in f.readlines()]
-    ff = [np.fromstring(x, dtype='float', sep=' ') for x in ff]
-    ff = np.array(ff)
-
-    data['training_x'] = ff[:, :-1]
-    data['training_y'] = ff[:, -1]
-
-    f = open(test_filename, 'r')
-    ff = [x.lstrip().rstrip() for x in f.readlines()]
-    ff = [np.fromstring(x, dtype='float', sep=' ') for x in ff]
-    ff = np.array(ff)
-
-    data['testing_x'] = ff[:, :-1]
-    data['testing_y'] = ff[:, -1]
-
-    return data
-
-
-def read_data_hw2(filename):
-    data = {}
-    f = open(filename, 'r')
-    ff = [x.lstrip().rstrip() for x in f.readlines()]
-    ff = [np.fromstring(x, dtype='float', sep=' ') for x in ff]
-    ff = np.array(ff)
-
-    samples = ff[:, :-1]
-    labels = ff[:,-1]
-    
-    data['training_x'] = samples[:400,]
-    data['training_y'] = labels[:400,]
-    data['testing_x']  = samples[400:,]
-    data['testing_y']  = labels[400:,]
-    
-    return data
-
-
 def read_weight(weight_filename):
     with open(weight_filename, 'r') as infile:
         weights_dict = json.load(infile)
@@ -186,13 +143,23 @@ def approx_func(approx, model, data, label, weights = None):
         tmp = 0
         for i in range(len(weights)):
             tmp = tmp + weights[i] * (value ** i)
-        # print(value, sigmoid(value), tmp, weights)
+
         return tmp
 
-def data_preprocess(samples):
-    scaler = MinMaxScaler()
-    scaler.fit(samples)
-    samples = scaler.transform(samples)
+def data_preprocess(samples, preprocesss_type):
+    if preprocesss_type == 1:
+        # Feature Scaling (Standardization)
+        samples = stats.zscore(samples)
+    elif preprocesss_type == 2:
+        # Feature Scaling (min-max normalization)
+        scaler = MinMaxScaler()
+        scaler.fit(samples)
+        samples = scaler.transform(samples)
+    elif preprocesss_type == 3:
+        # Normalize
+        samples_col_sums = np.sum(samples, axis = 0)
+        samples_norm = samples / samples_col_sums[np.newaxis, :]
+        samples = samples_norm
 
     return samples
     '''

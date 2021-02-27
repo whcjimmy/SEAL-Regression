@@ -270,7 +270,7 @@ int main()
 
     double poly_deg = 3;
     // double poly_deg = 7;
-    vector<double> coeffs = {0.50101, 0.12668, -0.00005, -0.0009};
+    vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.0044};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
     
     // seperate features into two parts

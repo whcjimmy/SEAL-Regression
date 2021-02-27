@@ -235,6 +235,7 @@ int main()
 
     vector<vector<double>> standard_features = minmax_scaler(features);
 
+
     // seperate features into two parts
     rows = 736;
     int col_A = 17;
@@ -261,11 +262,11 @@ int main()
     double poly_deg = 3;
     // double poly_deg = 7;
 
-    vector<double> coeffs = {0.50101, 0.12668, -0.00005, -0.0009};
+    vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.0044};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
     double learning_rate = 0.01;
     int iter_times = 10;
-    
+
     // Calculate gradient descents in the plaintext domain
     //
     vector<double> weights_1 = weights;
@@ -273,7 +274,7 @@ int main()
     double w_x, tmp;
 
     for(int iter = 0; iter < iter_times; iter++) {
-        for(int i = 0; i < rows; i++) {
+        for(int i = 0; i < cols; i++) {
             delta_w[i] = 0;
         }
 

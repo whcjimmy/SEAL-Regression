@@ -10,30 +10,18 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.linear_model import LogisticRegression
 
 # Load Datasets
+# dataset = util.read_lbw() # use Z-score Standardization
+# dataset = util.read_pulsar_stars() # use Z-score Standardization
 # dataset = util.read_banknote()
-# dataset = util.read_load_breast_cancer()
 dataset = util.read_heart_disease()
+# dataset = util.read_load_breast_cancer()
 # dataset = util.read_make_circles()
 # dataset = util.read_make_moons()
-# dataset = util.read_data_hw2('hw2_lssvm_all.dat')
-# dataset = util.read_data_hw3('./hw3_train.dat', './hw3_test.dat')
-# dataset = util.read_pulsar_stars() # use Z-score Standardization
-# dataset = util.read_lbw() # use Z-score Standardization
 
 training_x = dataset['training_x']
 training_y = dataset['training_y']
 testing_x = dataset['testing_x']
 testing_y = dataset['testing_y']
-
-# Feature Scaling (min-max normalization)
-scaler = MinMaxScaler()
-scaler.fit(training_x)
-training_x = scaler.transform(training_x)
-scaler.fit(testing_x)
-testing_x = scaler.transform(testing_x)
-
-dataset['training_x'] = training_x
-dataset['testing_x'] = testing_x
 
 
 #Original Load Weights
@@ -44,7 +32,8 @@ for k in weights_dict.keys():
 
 # Parameters Settings
 learning_rate = 0.01
-iteration_times = 10
+iteration_times = 20
+
 
 # Logistic Regression
 print('---------- Logistic Regression ----------')
@@ -66,16 +55,57 @@ for deg in range(3, 11, 4):
     W = LR.train_LR(dataset, learning_rate, iteration_times, 2, weights_dict[str(deg)])
     LR.test_lr(W, dataset)
 
-
 # KERNELS
-learning_rate = 0.004
-iteration_times = 10
-
-# Kernel Logistic Regression
-print('---------- Kernel Logistic Regression ----------')
-lamba = 0.15
+learning_rate = 0.001
+iteration_times = 20
 
 '''
+learning_rate_list = [0.01, 0.001, 0.0001]
+gamma_list = [0.1, 0.01, 0.001]
+lamba_list = [0.1, 0.01, 0.001]
+'''
+learning_rate_list = [0.1, 0.01, 0.001, 0.0001]
+gamma_list = [0.1]
+lamba_list = [0.1]
+
+# kernel_type_list = ['linear', 'polynomial', 'rbf']
+kernel_type_list = ['rbf']
+power = 3
+
+for learning_rate, gamma, lamba, kernel in list(itertools.product(learning_rate_list, gamma_list, lamba_list, kernel_type_list)):
+    print('\n\n>>>>>   ', learning_rate, gamma, lamba, '   <<<<<')
+
+    print('---------- ', kernel, ' KERNEL ----------')
+    if kernel == 'linear':
+        K_in = KLR.get_Kernel(training_x, training_x, 'linear')
+        K_out = KLR.get_Kernel(training_x, testing_x, 'linear')
+    elif kernel == 'polynomial':
+        K_in = KLR.get_Kernel(training_x, training_x, 'polynomial', gamma, power)
+        K_out = KLR.get_Kernel(training_x, testing_x, 'polynomial', gamma, power)
+    elif kernel == 'rbf':
+        K_in = KLR.get_Kernel(training_x, training_x, 'rbf', gamma)
+        K_out = KLR.get_Kernel(training_x, testing_x, 'rbf', gamma)
+
+
+    beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
+    KLR.test_klr(beta, K_in, K_out, dataset)
+
+    for deg in range(3, 11, 4):
+        print(deg, )
+        beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 
+                             2, lamba, weights_dict[str(deg)])
+        KLR.test_klr(beta, K_in, K_out, dataset)
+
+
+
+
+
+
+'''
+# Kernel Logistic Regression
+print('---------- Kernel Logistic Regression ----------')
+lamba = 0.0001
+
 # Linear Kernel
 print('---------- LINEAR KERNEL ----------')
 K_in = KLR.get_Kernel(training_x, training_x, 'linear')
@@ -121,41 +151,12 @@ for deg in range(3, 11, 4):
     print(deg)
     beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 2, lamba, weights_dict[str(deg)])
     KLR.test_klr(beta, K_in, K_out, dataset)
+'''
 
-
+'''
 # Kernel Ridge Regression
 print('---------- Kernel Ridge Regression ----------')
 beta = KLR.train_KRR(K_in, training_y, lamba)
 KLR.test_klr(beta, K_in, K_out, dataset)
 '''
 
-
-gamma_list = [0.1, 0.5, 0.01, 0.05, 0.001, 0.0001]
-lamba_list = [1, 0.1, 0.5, 0.01, 0.05, 0.001, 0.0001]
-power = 3
-for gamma, lamba in list(itertools.product(gamma_list, lamba_list)):
-    print(gamma, lamba)
-    print('---------- POLYNOMIAL KERNEL ----------')
-    K_in = KLR.get_Kernel(training_x, training_x, 'polynomial', gamma, power)
-    K_out = KLR.get_Kernel(training_x, testing_x, 'polynomial', gamma, power)
-
-    beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
-    KLR.test_klr(beta, K_in, K_out, dataset)
-
-    for deg in range(3, 11, 4):
-        print(deg)
-        beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 2, lamba, weights_dict[str(deg)])
-        KLR.test_klr(beta, K_in, K_out, dataset)
-
-
-    print('---------- RBF KERNEL ----------')
-    K_in = KLR.get_Kernel(training_x, training_x, 'rbf', gamma)
-    K_out = KLR.get_Kernel(training_x, testing_x, 'rbf', gamma)
-
-    beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
-    KLR.test_klr(beta, K_in, K_out, dataset)
-   
-    for deg in range(3, 11, 4):
-        print(deg)
-        beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 2, lamba, weights_dict[str(deg)])
-        KLR.test_klr(beta, K_in, K_out, dataset)
