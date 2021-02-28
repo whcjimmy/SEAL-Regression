@@ -114,7 +114,6 @@ int main()
     EncryptionParameters params(scheme_type::ckks);
     params.set_poly_modulus_degree(poly_modulus_degree);
     cout << "MAX BIT COUNT: " << CoeffModulus::MaxBitCount(poly_modulus_degree) << endl;
-    // params.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 35, 35, 35, 35, 35, 60}));
     params.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 35, 35, 35, 35, 35, 35, 35, 35, 35, 60}));
     // params.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {40, 25, 25, 25, 25, 25, 40}));
     SEALContext context(params);
@@ -190,9 +189,8 @@ int main()
     CKKSEncoder ckks_encoder(context);
 
     // Create Scale
-    // double scale = pow(2.0, 35);
     double scale = pow(2.0, 35);
-    // double scale = pow(2.0, 25);
+    // double scale = pow(2.0, 60);
 
     // Time
     chrono::high_resolution_clock::time_point time_start, time_end;
@@ -200,7 +198,8 @@ int main()
 
     // read file
     // string filename = "pulsar_stars.csv";
-    string filename = "./python/datasets/Heart-Disease-Machine-Learning/data.csv";
+    // string filename = "./python/datasets/Heart-Disease-Machine-Learning/data.csv";
+    string filename = "./python/datasets/breast_cancer/data.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
     vector<vector<double>> f_matrix = stringTodoubleMatrix(s_matrix);
 
@@ -208,7 +207,6 @@ int main()
     // Init features (rows of f_matrix , cols of f_matrix - 1)
     int total_rows = f_matrix.size();
     int rows = f_matrix.size();
-    int test_rows = f_matrix.size() - 736;
     cout << "\nNumber of rows  = " << rows << endl;
     int cols = f_matrix[0].size() - 1;
     cout << "\nNumber of cols  = " << cols << endl;
@@ -229,16 +227,26 @@ int main()
 
     // Fill the weights with random numbers (from 1 - 2)
     for (int i = 0; i < cols; i++) {
-        weights[i] = RandomFloat(0.0001, 0.0005);
-        // weights[i] = RandomFloat(-2, 2) + 0.00000001;
+        weights[i] = 0;
+        // weights[i] = RandomFloat(-0.001, 0.001);
     }
 
     vector<vector<double>> standard_features = minmax_scaler(features);
+    // vector<vector<double>> standard_features = standard_scaler(features);
+    for(int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) { 
+            if(standard_features[i][j] == 0) {
+                standard_features[i][j] = 0.000000000001;
+            }
+        }
+    }
 
 
     // seperate features into two parts
-    rows = 736;
-    int col_A = 17;
+    rows = 364;
+    int test_rows = f_matrix.size() - rows;
+    int col_A = 15;
+    // int col_A = 4;
     int col_B = cols - col_A;
 
     vector<vector<double>> features_A(rows, vector<double>(col_A));
@@ -247,8 +255,10 @@ int main()
     // calculate features_A
     for(int i = 0; i < rows; i++) {
         for (int j = 0; j < col_A; j++) { 
-                features_A[i][j] = standard_features[i][j];
+            features_A[i][j] = standard_features[i][j];
+            cout << features_A[i][j] << " " ;
         }
+        cout << endl;
     }
 
     // calculate features_B
@@ -258,22 +268,21 @@ int main()
         }
     }
 
-    double lambda = 0.01;
     double poly_deg = 3;
     // double poly_deg = 7;
 
     vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.0044};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
-    double learning_rate = 0.01;
-    int iter_times = 10;
+    double learning_rate = 1;
+    int iter_times = 20;
 
     // Calculate gradient descents in the plaintext domain
-    //
     vector<double> weights_1 = weights;
     vector<double> delta_w(cols, 0.0);
     double w_x, tmp;
 
     for(int iter = 0; iter < iter_times; iter++) {
+        cout << "iter " << iter << endl;
         for(int i = 0; i < cols; i++) {
             delta_w[i] = 0;
         }
@@ -282,7 +291,7 @@ int main()
             w_x = vector_dot_product(weights_1, standard_features[i]);
             tmp = 0.0;
 
-            for(int j = 0; j < poly_deg; j++) {
+            for(int j = 0; j <= poly_deg; j++) {
                 tmp = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
                 tmp = tmp * pow(w_x, j);
                 for(int k = 0; k < cols; k++) {
@@ -296,13 +305,27 @@ int main()
         }
 
         // output results
-        cout << "iter " << iter << endl;
-        for(int i = 0; i < cols; i++) {
+        for(int i = 0; i < 10; i++) {
             cout << weights_1[i] << " ";
+            // cout << delta_w[i] << " ";
         }
         cout << endl;
     }
 
+    // acuracy
+    double acc_3 = 0.0;
+    for(int i = 364; i < total_rows; i++) {
+        double tmp_1;
+        tmp_1 = vector_dot_product(weights_1, standard_features[i]);
+        if(tmp_1 >= 0) {
+            tmp_1 = 1;
+        } else {
+            tmp_1 = -1;
+        }
+
+        if(tmp_1 == labels[i]) acc_3 += 1;
+    }
+    cout << "acc 3 " << acc_3 / test_rows << endl;
 
     // Calculate gradient descents in the encrypted domain
 
@@ -374,7 +397,7 @@ int main()
             for(int j = 0; j <= poly_deg; j++) {
                 alpha = coeffs[j] * pow(-1 * labels[i], j + 1) / rows;
                 ckks_encoder.encode(alpha, scale, alpha_plain);
-                
+
                 evaluator.mod_switch_to_inplace(alpha_plain, wx_powers_cipher[j].parms_id());
                 evaluator.multiply_plain_inplace(wx_powers_cipher[j], alpha_plain);
                 evaluator.rescale_to_next_inplace(wx_powers_cipher[j]);
@@ -386,7 +409,7 @@ int main()
             int last_id = wx_powers_cipher.size() - 1;
             parms_id_type last_parms_id = wx_powers_cipher[last_id].parms_id();
             double last_scale = pow(2, (int)log2(wx_powers_cipher[last_id].scale()));
-
+            
             for(int j = 0; j <= poly_deg; j++) {
                 evaluator.mod_switch_to_inplace(wx_powers_cipher[j], last_parms_id);
                 wx_powers_cipher[j].scale() = last_scale;
@@ -397,14 +420,14 @@ int main()
 
         evaluator.add_many(delta_w_cipher, delta_w_all_cipher);
 
-
         // Test
         decryptor.decrypt(delta_w_all_cipher, delta_w_plain);
         ckks_encoder.decode(delta_w_plain, delta_w_decode);
 
-        for(int i = 0; i < cols; i++) {
+        for(int i = 0; i < 10; i++) {
             weights[i] = weights[i] - learning_rate * delta_w_decode[i];
             cout << weights[i] << " ";
+            // cout << delta_w_decode[i] << " ";
         }
         cout << endl;
     }
@@ -415,7 +438,7 @@ int main()
 
     // acuracy
     double acc_1 = 0.0, acc_2 = 0.0;
-    for(int i = 736; i < total_rows; i++) {
+    for(int i = 364; i < total_rows; i++) {
         double tmp_1, tmp_2;
         tmp_1 = vector_dot_product(weights_1, standard_features[i]);
         tmp_2 = vector_dot_product(weights, standard_features[i]);

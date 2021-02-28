@@ -17,12 +17,12 @@ def get_Kernel(dataset_1, dataset_2, kernel_type = None, gamma = None, power = N
                 K[i][j] = np.power((1 + gamma * np.dot(data_1, data_2)), power)
             elif kernel_type == 'rbf':
                 tmp = -1.0 * gamma * sum([(data_1[x] - data_2[x])**2 for x in range(data_dimension)])
-                '''
-                K[i][j] = 1 + tmp + (tmp ** 2) / 2
+                K[i][j] = 1 + tmp + (tmp ** 2) / 2 
                 # K[i][j] = 1 + tmp + (tmp ** 2) / 2 + (tmp ** 3) / 6 + (tmp ** 4) / 24
                 '''
                 K[i][j] = np.exp(-1.0 * gamma * \
                                  sum([(data_1[x] - data_2[x])**2 for x in range(data_dimension)]))
+                '''
     return K
 
 
@@ -34,9 +34,6 @@ def train_KLR(K, training_y, learning_rate, iteration_times, approx, lamba, weig
         T = []
         for data, label in zip(K, training_y):
             t = util.approx_func(approx, beta, data, label, weights) * (-1) * label * data
-            if approx == 2:
-                t0 = util.approx_func(0, beta, data, label, weights) * (-1) * label * data
-                t2 = util.approx_func(2, beta, data, label, weights) * (-1) * label * data
             T.append(t)
         T = l2_reg + np.sum(T, axis = 0) / data_size
         beta = beta - learning_rate * T

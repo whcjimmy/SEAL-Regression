@@ -218,7 +218,8 @@ int main()
 
     // Read File
     // string filename = "pulsar_stars.csv";
-    string filename = "./python/datasets/Heart-Disease-Machine-Learning/data.csv";
+    // string filename = "./python/datasets/Heart-Disease-Machine-Learning/data.csv";
+    string filename = "./python/datasets/breast_cancer/data.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
     vector<vector<double>> f_matrix = stringTodoubleMatrix(s_matrix);
 
@@ -245,8 +246,7 @@ int main()
 
     // Fill the weights with random numbers (from 1 - 2)
     for (int i = 0; i < total_rows; i++) {
-        // beta[i] = 0;
-        beta[i] = RandomFloat(0.0001, 0.0002);
+        beta[i] = 0;
         // beta[i] = RandomFloat(-2, 2) + 0.00000001;
     }
 
@@ -254,18 +254,18 @@ int main()
 
 
     // Parameters Settings
-    int training_rows = 736; // training rows
-    // int training_rows = 10; // training rows
+    int training_rows = 364; // training rows
+    // training_rows = 300;
     int testing_rows = total_rows - training_rows;
     beta.resize(training_rows);
 
-    int col_A = 17;
+    int col_A = 15;
     int col_B = total_cols - col_A;
 
-    double learning_rate = 0.0004;
-    int iter_times = 10;
-    double lambda = 0.15;
+    double learning_rate = 0.01;
+    int iter_times = 20;
     double gamma  = 0.1;
+    double lambda = 0.1;
     int poly_kernel_deg = 3;
 
     double poly_deg = 3;
@@ -294,6 +294,7 @@ int main()
         }
     }
     
+    /*
     // -------- LINEAR KERNEL --------
     cout << " -------- LINEAR KERNEL -------- " << endl;
     // calculate kernel_A
@@ -332,6 +333,7 @@ int main()
             }
         }
     }
+    */
 
     /*
     // -------- Polynomial KERNEL --------
@@ -384,7 +386,6 @@ int main()
     bool is_rbf = false;
     vector<vector<double>> kernel_A_2(training_rows, vector<double>(training_rows));
     vector<vector<double>> kernel_B_2(training_rows, vector<double>(training_rows));
-    /*
     // -------- RBF KERNEL --------
     cout << " -------- RBF KERNEL -------- " << endl;
     is_rbf = true;
@@ -435,7 +436,6 @@ int main()
             test_kernel[i][j] = 1 + test_kernel[i][j] + pow(test_kernel[i][j], 2) / 2;
         }
     }
-    */
 
     // diagonal matrix
     vector<vector<double>> kernel_A_diagonals(training_rows, vector<double>(training_rows));
@@ -488,30 +488,11 @@ int main()
         // output results
         cout << "iter " << iter << endl;
         for(int i = 0; i < 10; i++) {
-            cout << l2_reg[i] * tmp + delta_beta[i]  << " ";
-            // cout << beta_1[i] << " ";
+            cout << beta_1[i] << " ";
         }
         cout << endl;
     }
    
-    /*
-    // acuracy
-    double acc_3 = 0.0;
-    for(int i = 0; i < training_rows; i++) {
-        double tmp_1;
-        tmp_1 = vector_dot_product(beta_1, kernel[i]);
-
-        if(tmp_1 >= 0) {
-            tmp_1 = 1;
-        } else {
-            tmp_1 = -1;
-        }
-
-        if(tmp_1 == labels[i]) acc_3 += 1;
-    }
-    cout << "acc 3 " << acc_3 / training_rows << endl;
-    */
-
     // acuracy
     double acc_3 = 0.0;
     for(int i = 0; i < testing_rows; i++) {
@@ -601,12 +582,13 @@ int main()
     cout << "CALCULATING......\n";
     vector<Ciphertext> kernel_cipher(training_rows);  // x
     vector<Ciphertext> kernel_diagonals_cipher(training_rows);  // x diagonal
-
+    /*    
     // LINEAR KERNEL
     for(int i = 0; i < training_rows; i++) {
         evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_cipher[i]);
         evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
     }
+    */
     
     /*
     // POLYNOMIAL KERNEL
@@ -633,7 +615,6 @@ int main()
     }
     */
     
-    /*
     // RBF KERNEL
     if(is_rbf == true) {
         vector<Ciphertext> kernel_2_cipher(training_rows);
@@ -670,7 +651,6 @@ int main()
             evaluator.add_inplace(kernel_diagonals_cipher[i], kernel_2_D_cipher[i]);
         }
     }
-    */
 
     time_end = chrono::high_resolution_clock::now();
     time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
@@ -756,8 +736,7 @@ int main()
 
         for(int i = 0; i < 10; i++) {
             beta[i] = beta[i] - learning_rate * delta_beta_decode[i];
-            // cout << beta[i] << " ";
-            cout << delta_beta_decode[i] << " ";
+            cout << beta[i] << " ";
         }
         cout << endl;
     }

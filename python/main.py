@@ -13,8 +13,8 @@ from sklearn.linear_model import LogisticRegression
 # dataset = util.read_lbw() # use Z-score Standardization
 # dataset = util.read_pulsar_stars() # use Z-score Standardization
 # dataset = util.read_banknote()
-dataset = util.read_heart_disease()
-# dataset = util.read_load_breast_cancer()
+# dataset = util.read_heart_disease()
+dataset = util.read_load_breast_cancer()
 # dataset = util.read_make_circles()
 # dataset = util.read_make_moons()
 
@@ -31,7 +31,7 @@ for k in weights_dict.keys():
 
 
 # Parameters Settings
-learning_rate = 0.01
+learning_rate = 0.1
 iteration_times = 20
 
 
@@ -47,12 +47,14 @@ print(clf.score(training_x, training_y), clf.score(testing_x, testing_y))
 '''
 print('Original')
 W = LR.train_LR(dataset, learning_rate, iteration_times, 0)
+print(W)
 LR.test_lr(W, dataset)
 
 # Polynomial Logistic Regression
 for deg in range(3, 11, 4):
     print('Poly degree = ', deg,)
     W = LR.train_LR(dataset, learning_rate, iteration_times, 2, weights_dict[str(deg)])
+    # print(W)
     LR.test_lr(W, dataset)
 
 # KERNELS
@@ -64,9 +66,9 @@ learning_rate_list = [0.01, 0.001, 0.0001]
 gamma_list = [0.1, 0.01, 0.001]
 lamba_list = [0.1, 0.01, 0.001]
 '''
-learning_rate_list = [0.1, 0.01, 0.001, 0.0001]
-gamma_list = [0.1]
-lamba_list = [0.1]
+learning_rate_list = [0.1, 0.05, 0.01, 0.005, 0.001]
+gamma_list = [0.1, 0.01]
+lamba_list = [0.1, 0.01]
 
 # kernel_type_list = ['linear', 'polynomial', 'rbf']
 kernel_type_list = ['rbf']

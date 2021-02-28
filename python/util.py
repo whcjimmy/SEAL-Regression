@@ -65,7 +65,7 @@ def read_heart_disease():
         ff = [x.rstrip() for x in f.readlines()]
         ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
         ff = np.array(ff)
-        np.random.shuffle(ff)
+        # np.random.shuffle(ff)
     samples = data_preprocess(ff[:, :-1], 2)
     # samples = ff[:, :-1]
     labels = np.array([1 if x == 1 else -1 for x in ff[:,-1]])
