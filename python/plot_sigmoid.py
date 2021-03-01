@@ -42,7 +42,7 @@ plt.plot(sigmoid_x, sigmoid_y, label='sigmoid')
 
 plt.axis([-15, 15, -0.25, 1.25])
 plt.legend()
-plt.savefig('./polt_sigmoid.png')
+plt.savefig('./plot_sigmoid.png')
 
 with open('weights.out' ,'w') as outfile:
     json.dump(data, outfile, indent = 2)

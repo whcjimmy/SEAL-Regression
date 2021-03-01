@@ -21,7 +21,10 @@ for deg in range(2, 30, 8):
     poly = np.poly1d(z)
     print(poly)
     poly_y = poly(e_x)
-    plt.plot(e_x, poly_y, label='%sth Taylor Polynomial' % deg)
+    if deg == 2:
+        plt.plot(e_x, poly_y, label='%snd Taylor Polynomial' % deg)
+    else:
+        plt.plot(e_x, poly_y, label='%sth Taylor Polynomial' % deg)
 
 
 plt.plot(e_x, e_y, label='e^x')
@@ -29,5 +32,5 @@ plt.plot(e_x, e_y, label='e^x')
 plt.axis([-15, 5, 0, 10])
 plt.legend()
 
-plt.savefig('./exp.png')
+plt.savefig('./plot_exp.png')
 
