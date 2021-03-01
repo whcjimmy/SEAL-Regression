@@ -246,16 +246,24 @@ int main()
 
     // Fill the weights with random numbers (from 1 - 2)
     for (int i = 0; i < total_rows; i++) {
-        beta[i] = 0;
+        // beta[i] = 0;
+        beta[i] = RandomFloat(-0.1, 0.1);
         // beta[i] = RandomFloat(-2, 2) + 0.00000001;
     }
 
-    vector<vector<double>> standard_features = minmax_scaler(features);
+    // vector<vector<double>> standard_features = minmax_scaler(features);
+    vector<vector<double>> standard_features = features;
+    for(int i = 0; i < total_rows; i++) {
+        for (int j = 0; j < total_cols; j++) { 
+            if(standard_features[i][j] == 0) {
+                standard_features[i][j] = 0.000000000001;
+            }
+        }
+    }
 
 
     // Parameters Settings
     int training_rows = 364; // training rows
-    // training_rows = 300;
     int testing_rows = total_rows - training_rows;
     beta.resize(training_rows);
 
@@ -263,9 +271,9 @@ int main()
     int col_B = total_cols - col_A;
 
     double learning_rate = 0.01;
-    int iter_times = 20;
+    int iter_times = 30;
     double gamma  = 0.1;
-    double lambda = 0.1;
+    double lambda = 0.01;
     int poly_kernel_deg = 3;
 
     double poly_deg = 3;
@@ -293,7 +301,7 @@ int main()
             test_kernel[i][j] = 0;
         }
     }
-    
+   
     /*
     // -------- LINEAR KERNEL --------
     cout << " -------- LINEAR KERNEL -------- " << endl;
@@ -582,7 +590,8 @@ int main()
     cout << "CALCULATING......\n";
     vector<Ciphertext> kernel_cipher(training_rows);  // x
     vector<Ciphertext> kernel_diagonals_cipher(training_rows);  // x diagonal
-    /*    
+
+    /*
     // LINEAR KERNEL
     for(int i = 0; i < training_rows; i++) {
         evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_cipher[i]);
@@ -680,12 +689,16 @@ int main()
     for(int iter = 0; iter < iter_times; iter++) {
         cout << "iter " << iter << endl;
         ckks_encoder.encode(beta, scale, beta_plain);
+        encryptor.encrypt(beta_plain, beta_cipher);
+
         for(int i = 0; i < training_rows; i++) {
             x_cipher = kernel_cipher[i];
             evaluator.mod_switch_to_inplace(beta_plain, x_cipher.parms_id());
 
-            evaluator.multiply_plain(x_cipher, beta_plain, beta_kernel_cipher);
-            evaluator.rescale_to_next_inplace(beta_kernel_cipher);
+            beta_kernel_cipher = cipher_dot_product(x_cipher, beta_cipher, total_cols, relin_keys, gal_keys, evaluator);
+
+            // evaluator.multiply_plain(x_cipher, beta_plain, beta_kernel_cipher);
+            // evaluator.rescale_to_next_inplace(beta_kernel_cipher);
 
             compute_all_powers(beta_kernel_cipher, poly_deg, evaluator, relin_keys, bk_powers_cipher);
             evaluator.mod_switch_to_inplace(one_cipher, x_cipher.parms_id());
@@ -718,7 +731,6 @@ int main()
         evaluator.add_many(delta_beta_cipher, delta_beta_all_cipher);
 
         // L2 term
-        encryptor.encrypt(beta_plain, beta_cipher);
         l2_reg_cipher = Linear_Transform_Cipher(beta_cipher, kernel_diagonals_cipher, gal_keys, params);
         evaluator.rescale_to_next_inplace(l2_reg_cipher);
         evaluator.mod_switch_to_inplace(l2_reg_alpha_plain, l2_reg_cipher.parms_id());
@@ -739,35 +751,36 @@ int main()
             cout << beta[i] << " ";
         }
         cout << endl;
+
+        // acuracy
+        double acc_1 = 0.0, acc_2 = 0.0;
+        for(int i = 0; i < testing_rows; i++) {
+            double tmp_1, tmp_2;
+            tmp_1 = vector_dot_product(beta_1, test_kernel[i]);
+            tmp_2 = vector_dot_product(beta, test_kernel[i]);
+            if(tmp_1 >= 0) {
+                tmp_1 = 1;
+            } else {
+                tmp_1 = -1;
+            }
+
+            if(tmp_2 >= 0) {
+                tmp_2 = 1;
+            } else {
+                tmp_2 = -1;
+            }
+
+            if(tmp_1 == labels[training_rows + i]) acc_1 += 1;
+            if(tmp_2 == labels[training_rows + i]) acc_2 += 1;
+        }
+        cout << "acc 1 " << acc_1 / testing_rows << endl;
+        cout << "acc 2 " << acc_2 / testing_rows << endl;
     }
 
     time_end = chrono::high_resolution_clock::now();
     time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
     cout << training_rows << " total execution time :\t" << time_diff.count() << " milliseconds" << endl;
 
-    // acuracy
-    double acc_1 = 0.0, acc_2 = 0.0;
-    for(int i = 0; i < testing_rows; i++) {
-        double tmp_1, tmp_2;
-        tmp_1 = vector_dot_product(beta_1, test_kernel[i]);
-        tmp_2 = vector_dot_product(beta, test_kernel[i]);
-        if(tmp_1 >= 0) {
-            tmp_1 = 1;
-        } else {
-            tmp_1 = -1;
-        }
-
-        if(tmp_2 >= 0) {
-            tmp_2 = 1;
-        } else {
-            tmp_2 = -1;
-        }
-
-        if(tmp_1 == labels[training_rows + i]) acc_1 += 1;
-        if(tmp_2 == labels[training_rows + i]) acc_2 += 1;
-    }
-    cout << "acc 1 " << acc_1 / testing_rows << endl;
-    cout << "acc 2 " << acc_2 / testing_rows << endl;
 
     return 0;
 }
