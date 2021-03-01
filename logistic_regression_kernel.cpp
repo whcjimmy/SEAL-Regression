@@ -673,7 +673,7 @@ int main()
 
     double alpha;
     Plaintext alpha_plain, l2_reg_alpha_plain, beta_plain;
-    Ciphertext x_cipher, beta_cipher, beta_kernel_cipher, delta_beta_all_cipher, l2_reg_cipher;
+    Ciphertext x_cipher, beta_cipher_1, beta_cipher_2, beta_kernel_cipher, delta_beta_all_cipher, l2_reg_cipher;
     vector<Ciphertext> delta_beta_cipher(training_rows);
     vector<Ciphertext> bk_powers_cipher(poly_deg);
     // used when decoding
@@ -689,13 +689,13 @@ int main()
     for(int iter = 0; iter < iter_times; iter++) {
         cout << "iter " << iter << endl;
         ckks_encoder.encode(beta, scale, beta_plain);
-        encryptor.encrypt(beta_plain, beta_cipher);
 
         for(int i = 0; i < training_rows; i++) {
             x_cipher = kernel_cipher[i];
-            evaluator.mod_switch_to_inplace(beta_plain, x_cipher.parms_id());
+            encryptor.encrypt(beta_plain, beta_cipher_1);
+            evaluator.mod_switch_to_inplace(beta_cipher_1, x_cipher.parms_id());
 
-            beta_kernel_cipher = cipher_dot_product(x_cipher, beta_cipher, total_cols, relin_keys, gal_keys, evaluator);
+            beta_kernel_cipher = cipher_dot_product(x_cipher, beta_cipher_1, total_cols, relin_keys, gal_keys, evaluator);
 
             // evaluator.multiply_plain(x_cipher, beta_plain, beta_kernel_cipher);
             // evaluator.rescale_to_next_inplace(beta_kernel_cipher);
@@ -726,12 +726,16 @@ int main()
             }
 
             evaluator.add_many(bk_powers_cipher, delta_beta_cipher[i]);
+
         }
 
         evaluator.add_many(delta_beta_cipher, delta_beta_all_cipher);
 
         // L2 term
-        l2_reg_cipher = Linear_Transform_Cipher(beta_cipher, kernel_diagonals_cipher, gal_keys, params);
+        encryptor.encrypt(beta_plain, beta_cipher_2);
+        evaluator.mod_switch_to_inplace(beta_cipher_2, kernel_diagonals_cipher[0].parms_id());
+
+        l2_reg_cipher = Linear_Transform_Cipher(beta_cipher_2, kernel_diagonals_cipher, gal_keys, params);
         evaluator.rescale_to_next_inplace(l2_reg_cipher);
         evaluator.mod_switch_to_inplace(l2_reg_alpha_plain, l2_reg_cipher.parms_id());
         evaluator.multiply_plain_inplace(l2_reg_cipher, l2_reg_alpha_plain);
@@ -740,7 +744,6 @@ int main()
         l2_reg_cipher.scale() = pow(2, (int)log2(delta_beta_all_cipher.scale()));
 
         evaluator.add_inplace(delta_beta_all_cipher, l2_reg_cipher);
-
 
         // Test
         decryptor.decrypt(delta_beta_all_cipher, delta_beta_plain);
