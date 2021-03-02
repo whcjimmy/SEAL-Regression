@@ -2,6 +2,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <algorithm>
 #include <vector>
 #include <valarray>
 #include "util.cpp"
@@ -33,6 +34,7 @@ int main()
     string filename = "./python/datasets/breast_cancer/data.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
     vector<vector<double>> f_matrix = stringTodoubleMatrix(s_matrix);
+    // random_shuffle(f_matrix.begin(), f_matrix.end());
 
     // Init features, labels and weights
     int total_rows = f_matrix.size();
@@ -79,7 +81,7 @@ int main()
     double poly_deg = 3;
     // double poly_deg = 7;
 
-    vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.0044};
+    vector<double> coeffs = {0.50081, 0.08937, -0.00001, -0.00297};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
 
 
@@ -87,8 +89,9 @@ int main()
     int col_A = 15;
     int col_B = total_cols - col_A;
 
-    double learning_rate = 0.01;
+    double learning_rate = 0.001;
     int iter_times = 20;
+    iter_times = 10;
     double gamma  = 0.1;
     double lambda = 0.01;
     int poly_kernel_deg = 3;
@@ -101,18 +104,13 @@ int main()
     // Training Kernel
     for(int i = 0; i < training_rows; i++) {
         for(int j = 0; j < training_rows; j++) { 
-            for(int k = 0; k < total_cols; k++) { 
-                training_kernel[i][j] += training_x[i][k] * training_x[j][k];
-
-            }
+            training_kernel[i][j] = vector_dot_product(training_x[i], training_x[j]);
         }
     }
     // Testing Kernel
     for(int i = 0; i < testing_rows; i++) {
         for (int j = 0; j < training_rows; j++) { 
-            for(int k = 0; k < total_cols; k++) { 
-                testing_kernel[i][j] += testing_x[i][k] * training_x[j][k];
-            }
+            testing_kernel[i][j] = vector_dot_product(testing_x[i], training_x[j]);
         }
     }
 
@@ -176,14 +174,14 @@ int main()
 
         for(int i = 0; i < training_rows; i++) {
             w_x = vector_dot_product(weights, training_kernel[i]);
-            tmp = 0.0;
 
+            tmp = 0.0;
             for(int j = 0; j <= poly_deg; j++) {
-                tmp = coeffs[j] * pow(-1 * training_y[i], j + 1);
-                tmp = tmp * pow(w_x, j);
-                for(int k = 0; k < training_rows; k++) {
-                    delta_w[k] += tmp * training_kernel[i][k];
-                }
+                tmp += coeffs[j] * pow(-1 * training_y[i], j + 1) * pow(w_x, j);
+            }
+
+            for(int j = 0; j < training_rows; j++) {
+                delta_w[j] += tmp * training_kernel[i][j];
             }
         }
 
@@ -200,6 +198,7 @@ int main()
         }
         cout << endl;
 
+        test_accuracy(weights, training_kernel, training_y);
         test_accuracy(weights, testing_kernel, testing_y);
     }
 

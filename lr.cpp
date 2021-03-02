@@ -2,6 +2,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <algorithm>
 #include <vector>
 #include <valarray>
 #include "util.cpp"
@@ -33,6 +34,7 @@ int main()
     string filename = "./python/datasets/breast_cancer/data.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
     vector<vector<double>> f_matrix = stringTodoubleMatrix(s_matrix);
+    // random_shuffle(f_matrix.begin(), f_matrix.end());
 
     // Init features, labels and weights
     int total_rows = f_matrix.size();
@@ -43,8 +45,6 @@ int main()
     vector<vector<double>> features(total_rows, vector<double>(total_cols));
     // Init labels (rows of f_matrix)
     vector<double> labels(total_rows);
-    // Init weight vector with zeros (cols of features)
-    vector<double> weights(total_cols);
 
     int training_rows = 364;
     int testing_rows = total_rows - training_rows;
@@ -70,6 +70,8 @@ int main()
     }
 
     // Init weights
+    // Init weight vector with zeros (cols of features)
+    vector<double> weights(total_cols);
     for (int i = 0; i < total_cols; i++) {
         weights[i] = 0;
         // weights[i] = RandomFloat(-0.1, 0.1);
@@ -79,7 +81,7 @@ int main()
     double poly_deg = 3;
     // double poly_deg = 7;
 
-    vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.0044};
+    vector<double> coeffs = {0.50081, 0.08937, -0.00001, -0.00297};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
 
 
@@ -88,7 +90,7 @@ int main()
     int col_B = total_cols - col_A;
 
     double learning_rate = 1;
-    int iter_times = 20;
+    int iter_times = 30;
 
     // Calculate gradient descents in the plaintext domain
     vector<double> delta_w(total_cols, 0.0);
@@ -100,14 +102,14 @@ int main()
 
         for(int i = 0; i < training_rows; i++) {
             w_x = vector_dot_product(weights, training_x[i]);
-            tmp = 0.0;
 
+            tmp = 0.0;
             for(int j = 0; j <= poly_deg; j++) {
-                tmp = coeffs[j] * pow(-1 * training_y[i], j + 1);
-                tmp = tmp * pow(w_x, j);
-                for(int k = 0; k < total_cols; k++) {
-                    delta_w[k] += tmp * training_x[i][k];
-                }
+                tmp += coeffs[j] * pow(-1 * training_y[i], j + 1) * pow(w_x, j);
+            }
+
+            for(int j = 0; j < total_cols; j++) {
+                delta_w[j] += tmp * training_x[i][j];
             }
         }
 
@@ -121,6 +123,7 @@ int main()
         }
         cout << endl;
 
+        test_accuracy(weights, training_x, training_y);
         test_accuracy(weights, testing_x, testing_y);
     }
 
