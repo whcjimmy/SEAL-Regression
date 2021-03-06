@@ -4,107 +4,11 @@
 #include <fstream>
 #include "seal/seal.h"
 #include "helper.h"
+#include "util.cpp"
 
 using namespace std;
 using namespace seal;
 
-// Dot Product
-double vector_dot_product(vector<double> vec_A, vector<double> vec_B)
-{
-    if (vec_A.size() != vec_B.size())
-    {
-        cerr << "Vector size mismatch" << endl;
-        exit(1);
-    }
-
-    double result = 0;
-    for (unsigned int i = 0; i < vec_A.size(); i++)
-    {
-        result += vec_A[i] * vec_B[i];
-    }
-
-    return result;
-}
-
-
-// String matrix to double matrix converter
-vector<vector<double>> stringTodoubleMatrix(vector<vector<string>> matrix)
-{
-    vector<vector<double>> result(matrix.size(), vector<double>(matrix[0].size()));
-    for (int i = 0; i < matrix.size(); i++)
-    {
-        for (int j = 0; j < matrix[0].size(); j++)
-        {
-            result[i][j] = ::atof(matrix[i][j].c_str());
-        }
-    }
-
-    return result;
-}
-
-// Standard Scaler
-vector<vector<double>> standard_scaler(vector<vector<double>> input_matrix)
-{
-    int rowSize = input_matrix.size();
-    int colSize = input_matrix[0].size();
-    vector<vector<double>> result_matrix(rowSize, vector<double>(colSize));
-
-    // Optimization: Get Means and Standard Devs first then do the scaling
-    // first pass: get means and standard devs
-    vector<double> means_vec(colSize);
-    vector<double> stdev_vec(colSize);
-    for (int i = 0; i < colSize; i++)
-    {
-        vector<double> column(rowSize);
-        for (int j = 0; j < rowSize; j++)
-        {
-            // cout << input_matrix[j][i] << ", ";
-            column[j] = input_matrix[j][i];
-            // cout << column[j] << ", ";
-        }
-
-        means_vec[i] = getMean(column);
-        stdev_vec[i] = getStandardDev(column, means_vec[i]);
-        // cout << "MEAN at i = " << i << ":\t" << means_vec[i] << endl;
-        // cout << "STDV at i = " << i << ":\t" << stdev_vec[i] << endl;
-    }
-
-    // second pass: scale
-    for (int i = 0; i < rowSize; i++)
-    {
-        for (int j = 0; j < colSize; j++)
-        {
-            result_matrix[i][j] = (input_matrix[i][j] - means_vec[j]) / stdev_vec[j];
-            // cout << "RESULT at i = " << i << ":\t" << result_matrix[i][j] << endl;
-        }
-    }
-
-    return result_matrix;
-}
-
-// Min Max Scaler
-vector<vector<double>> minmax_scaler(vector<vector<double>> input_matrix)
-{
-    int rowSize = input_matrix.size();
-    int colSize = input_matrix[0].size();
-    for(int j = 0; j < colSize; j++) {
-        double max = -99999;
-        double min = 99999;
-        for(int i = 0; i < rowSize; i++) {
-            if(input_matrix[i][j] > max) {
-                max = input_matrix[i][j];
-            }
-            if(input_matrix[i][j] < min) {
-                min = input_matrix[i][j];
-            }
-        }
-        for(int i = 0; i < rowSize; i++) {
-            input_matrix[i][j] = (input_matrix[i][j] - min) / (max - min);
-        }
-    }
-
-    return input_matrix;
-}
 
 int main()
 {
@@ -196,154 +100,84 @@ int main()
     chrono::high_resolution_clock::time_point time_start, time_end;
     chrono::milliseconds time_diff;
 
-    // read file
+    // Read File
     // string filename = "pulsar_stars.csv";
     // string filename = "./python/datasets/Heart-Disease-Machine-Learning/data.csv";
     string filename = "./python/datasets/breast_cancer/data.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
     vector<vector<double>> f_matrix = stringTodoubleMatrix(s_matrix);
+    // random_shuffle(f_matrix.begin(), f_matrix.end());
 
     // Init features, labels and weights
-    // Init features (rows of f_matrix , cols of f_matrix - 1)
     int total_rows = f_matrix.size();
-    int rows = f_matrix.size();
-    cout << "\nNumber of rows  = " << rows << endl;
-    int cols = f_matrix[0].size() - 1;
-    cout << "\nNumber of cols  = " << cols << endl;
+    cout << "\nNumber of rows  = " << total_rows << endl;
+    int total_cols = f_matrix[0].size() - 1;
+    cout << "\nNumber of cols  = " << total_cols << endl;
 
-    vector<vector<double>> features(rows, vector<double>(cols));
-    // Init labels (rows of f_matrix)
-    vector<double> labels(rows);
-    // Init weight vector with zeros (cols of features)
-    vector<double> weights(cols);
+    vector<vector<double>> features(total_rows, vector<double>(total_cols));
+
+    int training_rows = 364;
+    int testing_rows = total_rows - training_rows;
+    vector<vector<double>> training_x(training_rows, vector<double>(total_cols));
+    vector<vector<double>> testing_x(testing_rows, vector<double>(total_cols));
+    vector<double> training_y(training_rows);
+    vector<double> testing_y(testing_rows);
 
     // Fill the features matrix and labels vector
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            features[i][j] = f_matrix[i][j];
-        }
-        labels[i] = f_matrix[i][cols];
-    }
-
-    // Fill the weights with random numbers (from 1 - 2)
-    for (int i = 0; i < cols; i++) {
-        // weights[i] = 0;
-        weights[i] = RandomFloat(-0.1, 0.1);
-    }
-
-    // vector<vector<double>> standard_features = minmax_scaler(features);
-    // vector<vector<double>> standard_features = standard_scaler(features);
-    vector<vector<double>> standard_features = features;
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) { 
-            if(standard_features[i][j] == 0) {
-                standard_features[i][j] = 0.000000000001;
+    for (int i = 0; i < total_rows; i++) {
+        for (int j = 0; j < total_cols; j++) {
+            if(i < training_rows) {
+                training_x[i][j] = f_matrix[i][j];
+            } else {
+                testing_x[i - training_rows][j] = f_matrix[i][j];
             }
         }
-    }
-
-
-    // seperate features into two parts
-    rows = 364;
-    // rows = 100;
-    // cols = 16;
-    int test_rows = f_matrix.size() - rows;
-    int col_A = 15;
-    // int col_A = 4;
-    int col_B = cols - col_A;
-
-    vector<vector<double>> features_A(rows, vector<double>(col_A));
-    vector<vector<double>> features_B(rows, vector<double>(col_B));
-
-    // calculate features_A
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < col_A; j++) { 
-            features_A[i][j] = standard_features[i][j];
-            // cout << features_A[i][j] << " ";
+        if(i < training_rows) {
+            training_y[i] = f_matrix[i][total_cols];
+        } else {
+            testing_y[i - training_rows] = f_matrix[i][total_cols];
         }
-        // cout << endl;
     }
 
-    // calculate features_B
-    for(int i = 0; i < rows; i++) {
-        for (int j = 0; j < col_B; j++) { 
-            features_B[i][j] = standard_features[i][col_A + j];
-            // cout << features_B[i][j] << " ";
-        }
-        // cout << endl;
+    // Init weights
+    // Init weight vector with zeros (cols of features)
+    vector<double> weights(total_cols);
+    for (int i = 0; i < total_cols; i++) {
+        weights[i] = 0;
+        // weights[i] = RandomFloat(-0.1, 0.1);
     }
 
+    // Polynomial Simulated Sigmoid Function
     double poly_deg = 3;
     // double poly_deg = 7;
 
-    vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.0044};
+    vector<double> coeffs = {0.50081, 0.08937, -0.00001, -0.00297};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
+
+
+    // Parameters Settings
+    int col_A = 15;
+    int col_B = total_cols - col_A;
+
     double learning_rate = 1;
-    int iter_times = 20;
+    int iter_times = 30;
 
-    // Calculate gradient descents in the plaintext domain
-    vector<double> weights_1 = weights;
-    vector<double> delta_w(cols, 0.0);
-    double w_x, tmp;
+    vector<vector<double>> features_A(training_rows, vector<double>(col_A));
+    vector<vector<double>> features_B(training_rows, vector<double>(col_B));
 
-    for(int iter = 0; iter < iter_times; iter++) {
-        cout << "iter " << iter << endl;
-        for(int i = 0; i < cols; i++) {
-            delta_w[i] = 0;
+    // calculate features_A
+    for(int i = 0; i < training_rows; i++) {
+        for (int j = 0; j < col_A; j++) { 
+            features_A[i][j] = training_x[i][j];
         }
-
-        for(int i = 0; i < rows; i++) {
-            w_x = vector_dot_product(weights_1, standard_features[i]);
-            // cout << w_x << endl;
-            tmp = 0.0;
-
-            for(int j = 0; j <= poly_deg; j++) {
-                tmp = coeffs[j] * pow(-1 * labels[i], j + 1);
-                // cout << "tmp" << tmp << " " << pow(-1 * labels[i], j + 1) << " " << w_x << " ";
-                tmp = tmp * pow(w_x, j);
-                // cout << tmp << " ";
-                for(int k = 0; k < cols; k++) {
-                    delta_w[k] += tmp * standard_features[i][k];
-                }
-            }
-            // cout << endl;
-            /*
-            for(int j = 0; j < 10; j++) {
-                cout << delta_w[j] << " ";
-            }
-            cout << endl;
-            */
-        }
-
-        for(int i = 0; i < cols; i++) {
-            weights_1[i] = weights_1[i] - learning_rate * delta_w[i] / rows;
-        }
-
-        // output results
-        for(int i = 0; i < 10; i++) {
-            cout << delta_w[i] << " ";
-        }
-        cout << endl;
-        for(int i = 0; i < 10; i++) {
-            cout << weights_1[i] << " ";
-        }
-        cout << endl;
     }
 
-    // acuracy
-    double acc_3 = 0.0;
-    for(int i = 364; i < total_rows; i++) {
-        double tmp_1;
-        tmp_1 = vector_dot_product(weights_1, standard_features[i]);
-        if(tmp_1 >= 0) {
-            tmp_1 = 1;
-        } else {
-            tmp_1 = -1;
+    // calculate features_B
+    for(int i = 0; i < training_rows; i++) {
+        for (int j = 0; j < col_B; j++) { 
+            features_B[i][j] = training_x[i][col_A + j];
         }
-
-        if(tmp_1 == labels[i]) acc_3 += 1;
     }
-    cout << "acc 3 " << acc_3 / test_rows << endl;
 
     // Calculate gradient descents in the encrypted domain
 
@@ -351,50 +185,39 @@ int main()
     time_start = chrono::high_resolution_clock::now();
 
     cout << "ENCODING......\n";
-    vector<Plaintext> features_A_plain(rows), features_B_plain(rows);
+    vector<Plaintext> features_A_plain(training_rows), features_B_plain(training_rows);
 
-    for (int i = 0; i < rows; i++) {
+    for (int i = 0; i < training_rows; i++) {
         ckks_encoder.encode(features_A[i], scale, features_A_plain[i]);
         ckks_encoder.encode(features_B[i], scale, features_B_plain[i]);
     }
 
     time_end = chrono::high_resolution_clock::now();
     time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
-    cout << rows << " total encoding time :\t" << time_diff.count() << " milliseconds" << endl;
+    cout << training_rows << " total encoding time :\t" << time_diff.count() << " milliseconds" << endl;
 
     // --------------- ENCRYPTNG ------------------
     time_start = chrono::high_resolution_clock::now();
 
     cout << "ENCRYPTING......\n";
-    vector<Ciphertext> features_A_cipher(rows), features_B_cipher(rows);
-    for (int i = 0; i < rows; i++) {
+    vector<Ciphertext> features_A_cipher(training_rows), features_B_cipher(training_rows);
+    for (int i = 0; i < training_rows; i++) {
         encryptor.encrypt(features_A_plain[i], features_A_cipher[i]);
         encryptor.encrypt(features_B_plain[i], features_B_cipher[i]);
     }
 
     time_end = chrono::high_resolution_clock::now();
     time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
-    cout << rows << " total encryption time :\t" << time_diff.count() << " milliseconds" << endl;
+    cout << training_rows << " total encryption time :\t" << time_diff.count() << " milliseconds" << endl;
    
     // --------------- CALCULATTNG ------------------
     time_start = chrono::high_resolution_clock::now();
 
     cout << "CALCULATING......\n";
-    vector<Ciphertext> features_cipher(rows);  // x
-    for(int i = 0; i < rows; i++) {
+    vector<Ciphertext> features_cipher(training_rows);  // x
+    for(int i = 0; i < training_rows; i++) {
         evaluator.rotate_vector(features_B_cipher[i], -col_A, gal_keys, features_cipher[i]);
         evaluator.add_inplace(features_cipher[i], features_A_cipher[i]);
-        
-        /*
-        Plaintext features_plain;
-        vector<double> features_decode(cols, 0);
-        decryptor.decrypt(features_A_cipher[i], features_plain);
-        ckks_encoder.decode(features_plain, features_decode);
-        for(int j = 0; j < 10; j++) {
-            cout << features_decode[j] << " ";
-        }
-        cout << endl;
-        */
     }
 
     double one = 1;
@@ -402,103 +225,48 @@ int main()
     Ciphertext one_cipher;
     ckks_encoder.encode(one, scale, one_plain);
     encryptor.encrypt(one_plain, one_cipher);
-
+    
     double alpha;
     Plaintext alpha_plain, weights_plain;
     Ciphertext x_cipher, weights_cipher, weights_features_cipher, delta_w_all_cipher;
-    vector<Ciphertext> delta_w_cipher(rows);
+    vector<Ciphertext> delta_w_cipher(training_rows);
     vector<Ciphertext> wx_powers_cipher(poly_deg);
     // used when decoding
     Plaintext delta_w_plain;
-    vector<double> delta_w_decode(cols);
-
-    iter_times = 30;
-    
+    vector<double> delta_w_decode(total_cols);
 
     for(int iter = 0; iter < iter_times; iter++) {
         cout << "iter " << iter << endl;
         ckks_encoder.encode(weights, scale, weights_plain);
         encryptor.encrypt(weights_plain, weights_cipher);
-        for(int i = 0; i < rows; i++) {
+        for(int i = 0; i < training_rows; i++) {
             x_cipher = features_cipher[i];
-            // evaluator.multiply_plain(x_cipher, weights_plain, weights_features_cipher);
-            
-            weights_features_cipher = cipher_dot_product(x_cipher, weights_cipher, cols, relin_keys, gal_keys, evaluator);
-
-            /*
-            // ---
-            Plaintext wx_plain;
-            vector<double> wx_decode(cols);
-            decryptor.decrypt(weights_features_cipher, wx_plain);
-            ckks_encoder.decode(wx_plain, wx_decode);
-            for(int j = 0; j < 5; j++)
-                cout << wx_decode[j] << " ";
-            // ---
-            */
-
-            // double tmp_1 = vector_dot_product(weights, standard_features[i]);
-            // cout << "w_x " << tmp_1 << endl;
-
-            // evaluator.rescale_to_next_inplace(weights_features_cipher);
+            weights_features_cipher = cipher_dot_product(x_cipher, weights_cipher, total_cols, relin_keys, gal_keys, evaluator);
 
             compute_all_powers(weights_features_cipher, poly_deg, evaluator, relin_keys, wx_powers_cipher);
             wx_powers_cipher[0] = one_cipher;
 
-            for(int j = 0; j <= poly_deg; j++) {
-                alpha = coeffs[j] * pow(-1 * labels[i], j + 1);
-                ckks_encoder.encode(alpha, scale, alpha_plain);
-
-                /*
-                // ---
-                Plaintext features_plain;
-                vector<double> features_decode(4, 0);
-                decryptor.decrypt(wx_powers_cipher[j], features_plain);
-                ckks_encoder.decode(features_plain, features_decode);
-                for(int k = 0; k < 5; k++)
-                    cout << j << " " << features_decode[k] << " ";
-                cout << endl;
-                // ---
-                */
-
-                evaluator.mod_switch_to_inplace(alpha_plain, wx_powers_cipher[j].parms_id());
-                evaluator.multiply_plain_inplace(wx_powers_cipher[j], alpha_plain);
-                evaluator.rescale_to_next_inplace(wx_powers_cipher[j]);
-                
-                /*
-                // ---
-                decryptor.decrypt(wx_powers_cipher[j], features_plain);
-                ckks_encoder.decode(features_plain, features_decode);
-                // cout << features_decode[0] << " ";
-                // ---
-                */
-
-                evaluator.mod_switch_to_inplace(x_cipher, wx_powers_cipher[j].parms_id());
-                evaluator.multiply_inplace(wx_powers_cipher[j], x_cipher);
-            }
-
-            // cout << endl;
-
             int last_id = wx_powers_cipher.size() - 1;
             parms_id_type last_parms_id = wx_powers_cipher[last_id].parms_id();
             double last_scale = pow(2, (int)log2(wx_powers_cipher[last_id].scale()));
-            
+
             for(int j = 0; j <= poly_deg; j++) {
                 evaluator.mod_switch_to_inplace(wx_powers_cipher[j], last_parms_id);
                 wx_powers_cipher[j].scale() = last_scale;
             }
 
+            for(int j = 0; j <= poly_deg; j++) {
+                alpha = coeffs[j] * pow(-1 * training_y[i], j + 1) / training_rows;
+                ckks_encoder.encode(alpha, scale, alpha_plain);
+                evaluator.mod_switch_to_inplace(alpha_plain, wx_powers_cipher[j].parms_id());
+                evaluator.multiply_plain_inplace(wx_powers_cipher[j], alpha_plain);
+                evaluator.rescale_to_next_inplace(wx_powers_cipher[j]);
+            }
+
             evaluator.add_many(wx_powers_cipher, delta_w_cipher[i]);
 
-            // ----
-            // Test
-            decryptor.decrypt(delta_w_cipher[i], delta_w_plain);
-            ckks_encoder.decode(delta_w_plain, delta_w_decode);
-
-            for(int i = 0; i < 10; i++) {
-                // cout << delta_w_decode[i] << " ";
-            }
-            // cout << endl;
-            // ----
+            evaluator.mod_switch_to_inplace(x_cipher, delta_w_cipher[i].parms_id());
+            evaluator.multiply_inplace(delta_w_cipher[i], x_cipher);
         }
 
         evaluator.add_many(delta_w_cipher, delta_w_all_cipher);
@@ -508,46 +276,31 @@ int main()
         ckks_encoder.decode(delta_w_plain, delta_w_decode);
 
         for(int i = 0; i < 10; i++) {
-            weights[i] = weights[i] - learning_rate * delta_w_decode[i] / rows;
-            cout << delta_w_decode[i] << " ";
-        }
-        cout << endl;
-
-        for(int i = 0; i < 10; i++) {
+            weights[i] = weights[i] - learning_rate * delta_w_decode[i];
             cout << weights[i] << " ";
         }
         cout << endl;
 
         // acuracy
-        double acc_1 = 0.0, acc_2 = 0.0;
-        for(int i = 364; i < total_rows; i++) {
-            double tmp_1, tmp_2;
-            tmp_1 = vector_dot_product(weights_1, standard_features[i]);
-            tmp_2 = vector_dot_product(weights, standard_features[i]);
-            if(tmp_1 >= 0) {
-                tmp_1 = 1;
+        double accuracy = 0.0;
+        for(int i = 0; i < testing_rows; i++) {
+            double tmp;
+            tmp = vector_dot_product(weights, testing_x[i]);
+            if(tmp >= 0) {
+                tmp = 1;
             } else {
-                tmp_1 = -1;
+                tmp = -1;
             }
 
-            if(tmp_2 >= 0) {
-                tmp_2 = 1;
-            } else {
-                tmp_2 = -1;
-            }
-
-            if(tmp_1 == labels[i]) acc_1 += 1;
-            if(tmp_2 == labels[i]) acc_2 += 1;
+            if(tmp == testing_y[i]) accuracy += 1;
         }
-        cout << "acc 1 " << acc_1 / test_rows << endl;
-        cout << "acc 2 " << acc_2 / test_rows << endl;
+        cout << "accuracy " << accuracy / testing_rows << endl;
 
     }
 
     time_end = chrono::high_resolution_clock::now();
     time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
-    cout << rows << " total execution time :\t" << time_diff.count() << " milliseconds" << endl;
-
+    cout << training_rows << " total execution time :\t" << time_diff.count() << " milliseconds" << endl;
 
     return 0;
 }
