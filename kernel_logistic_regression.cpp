@@ -207,13 +207,6 @@ void Matrix_Multiplication(size_t poly_modulus_degree)
         kernel_B_diagonals[i] = get_diagonal(i, kernel_B);
     }
 
-    /*
-    print_partial_matrix(kernel_A);
-    print_partial_matrix(kernel_A_diagonals);
-    print_partial_matrix(kernel_B);
-    print_partial_matrix(kernel_B_diagonals);
-    */
-
     // Combine two kernels together
     for(int i = 0; i < rows; i++) {
         for (int j = 0; j < rows; j++) { 

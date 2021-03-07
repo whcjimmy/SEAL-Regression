@@ -1,3 +1,4 @@
+#include <omp.h>
 #include <math.h>
 #include <iostream>
 #include <iomanip>
@@ -187,6 +188,7 @@ int main()
     cout << "ENCODING......\n";
     vector<Plaintext> features_A_plain(training_rows), features_B_plain(training_rows);
 
+#pragma omp parallel for
     for (int i = 0; i < training_rows; i++) {
         ckks_encoder.encode(features_A[i], scale, features_A_plain[i]);
         ckks_encoder.encode(features_B[i], scale, features_B_plain[i]);
@@ -201,6 +203,7 @@ int main()
 
     cout << "ENCRYPTING......\n";
     vector<Ciphertext> features_A_cipher(training_rows), features_B_cipher(training_rows);
+#pragma omp parallel for
     for (int i = 0; i < training_rows; i++) {
         encryptor.encrypt(features_A_plain[i], features_A_cipher[i]);
         encryptor.encrypt(features_B_plain[i], features_B_cipher[i]);
@@ -215,6 +218,7 @@ int main()
 
     cout << "CALCULATING......\n";
     vector<Ciphertext> features_cipher(training_rows);  // x
+#pragma omp parallel for
     for(int i = 0; i < training_rows; i++) {
         evaluator.rotate_vector(features_B_cipher[i], -col_A, gal_keys, features_cipher[i]);
         evaluator.add_inplace(features_cipher[i], features_A_cipher[i]);
@@ -239,8 +243,10 @@ int main()
         cout << "iter " << iter << endl;
         ckks_encoder.encode(weights, scale, weights_plain);
         encryptor.encrypt(weights_plain, weights_cipher);
+// #pragma omp parallel for
         for(int i = 0; i < training_rows; i++) {
             x_cipher = features_cipher[i];
+
             weights_features_cipher = cipher_dot_product(x_cipher, weights_cipher, total_cols, relin_keys, gal_keys, evaluator);
 
             compute_all_powers(weights_features_cipher, poly_deg, evaluator, relin_keys, wx_powers_cipher);
@@ -260,11 +266,10 @@ int main()
                 ckks_encoder.encode(alpha, scale, alpha_plain);
                 evaluator.mod_switch_to_inplace(alpha_plain, wx_powers_cipher[j].parms_id());
                 evaluator.multiply_plain_inplace(wx_powers_cipher[j], alpha_plain);
-                evaluator.rescale_to_next_inplace(wx_powers_cipher[j]);
+                // evaluator.rescale_to_next_inplace(wx_powers_cipher[j]);
             }
 
             evaluator.add_many(wx_powers_cipher, delta_w_cipher[i]);
-
             evaluator.mod_switch_to_inplace(x_cipher, delta_w_cipher[i].parms_id());
             evaluator.multiply_inplace(delta_w_cipher[i], x_cipher);
         }
@@ -275,7 +280,7 @@ int main()
         decryptor.decrypt(delta_w_all_cipher, delta_w_plain);
         ckks_encoder.decode(delta_w_plain, delta_w_decode);
 
-        for(int i = 0; i < 10; i++) {
+        for(int i = 0; i < total_cols; i++) {
             weights[i] = weights[i] - learning_rate * delta_w_decode[i];
             cout << weights[i] << " ";
         }
@@ -295,7 +300,6 @@ int main()
             if(tmp == testing_y[i]) accuracy += 1;
         }
         cout << "accuracy " << accuracy / testing_rows << endl;
-
     }
 
     time_end = chrono::high_resolution_clock::now();

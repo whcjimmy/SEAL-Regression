@@ -1,3 +1,4 @@
+#include <omp.h>
 #include <math.h>
 #include <iostream>
 #include <iomanip>
@@ -193,6 +194,7 @@ int main()
             }
         }
     }
+
     // Testing Kernel
     for(int i = 0; i < testing_rows; i++) {
         for (int j = 0; j < training_rows; j++) { 
@@ -222,6 +224,7 @@ int main()
             kernel_B[i][j] = kernel_B[i][j] * gamma;
         }
     }
+
     // Testing Kernel
     for(int i = 0; i < testing_rows; i++) {
         for (int j = 0; j < training_rows; j++) { 
@@ -250,7 +253,7 @@ int main()
         for (int j = 0; j < training_rows; j++) { 
             for(int k = 0; k < col_A; k++) { 
                 kernel_A[i][j] += 
-                    pow(standard_features[i][k] - standard_features[j][k], 2);
+                    pow(training_x[i][k] - training_x[j][k], 2);
             }
             kernel_A[i][j] = -1 * kernel_A[i][j] * gamma;
             kernel_A_2[i][j] = kernel_A[i][j] / pow(2, 0.5);
@@ -262,12 +265,13 @@ int main()
         for (int j = 0; j < training_rows; j++) { 
             for(int k = 0; k < col_B; k++) { 
                 kernel_B[i][j] += 
-                    pow(standard_features[i][col_A + k] - standard_features[j][col_A + k], 2);
+                    pow(training_x[i][col_A + k] - training_x[j][col_A + k], 2);
             }
             kernel_B[i][j] = -1 * kernel_B[i][j] * gamma;
             kernel_B_2[i][j] = kernel_B[i][j] / pow(2, 0.5);
         }
     }
+
     // Testing Kernel
     for(int i = 0; i < testing_rows; i++) {
         for (int j = 0; j < training_rows; j++) { 
@@ -309,6 +313,7 @@ int main()
     vector<Plaintext> kernel_A_2_plain(training_rows), kernel_B_2_plain(training_rows);
     vector<Plaintext> kernel_A_2_D_plain(training_rows), kernel_B_2_D_plain(training_rows);
 
+#pragma omp parallel for
     for (int i = 0; i < training_rows; i++) {
         ckks_encoder.encode(kernel_A[i], scale, kernel_A_plain[i]);
         ckks_encoder.encode(kernel_B[i], scale, kernel_B_plain[i]);
@@ -317,6 +322,7 @@ int main()
     }
 
     if(is_rbf == true) {
+#pragma omp parallel for
         for (int i = 0; i < training_rows; i++) {
             ckks_encoder.encode(kernel_A_2[i], scale, kernel_A_2_plain[i]);
             ckks_encoder.encode(kernel_B_2[i], scale, kernel_B_2_plain[i]);
@@ -338,6 +344,7 @@ int main()
     vector<Ciphertext> kernel_A_2_cipher(training_rows), kernel_B_2_cipher(training_rows);
     vector<Ciphertext> kernel_A_2_D_cipher(training_rows), kernel_B_2_D_cipher(training_rows);
 
+#pragma omp parallel for
     for (int i = 0; i < training_rows; i++) {
         encryptor.encrypt(kernel_A_plain[i], kernel_A_cipher[i]);
         encryptor.encrypt(kernel_B_plain[i], kernel_B_cipher[i]);
@@ -346,6 +353,7 @@ int main()
     }
 
     if(is_rbf == true) {
+#pragma omp parallel for
         for (int i = 0; i < training_rows; i++) {
             encryptor.encrypt(kernel_A_2_plain[i], kernel_A_2_cipher[i]);
             encryptor.encrypt(kernel_B_2_plain[i], kernel_B_2_cipher[i]);
@@ -372,6 +380,7 @@ int main()
     vector<Ciphertext> kernel_diagonals_cipher(training_rows);  // x diagonal
 
     // LINEAR KERNEL
+#pragma omp parallel for
     for(int i = 0; i < training_rows; i++) {
         evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_cipher[i]);
         evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
@@ -379,6 +388,7 @@ int main()
     
     /*
     // POLYNOMIAL KERNEL
+#pragma omp parallel for
     for(int i = 0; i < training_rows; i++) {
         evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_cipher[i]);
         evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
@@ -396,11 +406,12 @@ int main()
     }
     */
     
-    /*
     // RBF KERNEL
+    /*
     if(is_rbf == true) {
         vector<Ciphertext> kernel_2_cipher(training_rows);
         vector<Ciphertext> kernel_2_D_cipher(training_rows);
+#pragma omp parallel for
         for(int i = 0; i < training_rows; i++) {
             // original
             evaluator.add(kernel_A_2_cipher[i], kernel_B_2_cipher[i], kernel_2_cipher[i]);
@@ -464,13 +475,15 @@ int main()
         cout << "iter " << iter << endl;
         ckks_encoder.encode(beta, scale, beta_plain);
 
+// #pragma omp parallel for
         for(int i = 0; i < training_rows; i++) {
+            cout << i << endl;
             x_cipher = kernel_cipher[i];
+
             encryptor.encrypt(beta_plain, beta_cipher_1);
             evaluator.mod_switch_to_inplace(beta_cipher_1, x_cipher.parms_id());
 
             beta_kernel_cipher = cipher_dot_product(x_cipher, beta_cipher_1, training_rows, relin_keys, gal_keys, evaluator);
-
             compute_all_powers(beta_kernel_cipher, poly_deg, evaluator, relin_keys, bk_powers_cipher);
             evaluator.mod_switch_to_inplace(one_cipher, x_cipher.parms_id());
             bk_powers_cipher[0] = one_cipher;
@@ -487,14 +500,15 @@ int main()
             for(int j = 0; j <= poly_deg; j++) {
                 alpha = coeffs[j] * pow(-1 * training_y[i], j + 1) / training_rows;
                 ckks_encoder.encode(alpha, scale, alpha_plain);
-
                 evaluator.mod_switch_to_inplace(alpha_plain, bk_powers_cipher[j].parms_id());
                 evaluator.multiply_plain_inplace(bk_powers_cipher[j], alpha_plain);
-                evaluator.rescale_to_next_inplace(bk_powers_cipher[j]);
+                // evaluator.rescale_to_next_inplace(bk_powers_cipher[j]);
+
+                // evaluator.mod_switch_to_inplace(x_cipher, bk_powers_cipher[j].parms_id());
+                // evaluator.multiply_inplace(bk_powers_cipher[j], x_cipher);
             }
 
             evaluator.add_many(bk_powers_cipher, delta_beta_cipher[i]);
-
             evaluator.mod_switch_to_inplace(x_cipher, delta_beta_cipher[i].parms_id());
             evaluator.multiply_inplace(delta_beta_cipher[i], x_cipher);
 

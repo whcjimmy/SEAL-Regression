@@ -1,3 +1,4 @@
+#include <omp.h>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -500,10 +501,19 @@ Ciphertext cipher_dot_product(Ciphertext ctA, Ciphertext ctB, int size, RelinKey
     // cout << "\tExact Scale:\t" << dup.scale() << endl;
     // cout << "\tSize:\t" << dup.size() << endl;
 
+    vector<Ciphertext> results(size);
+
+#pragma omp parallel for
     for (int i = 1; i < size; i++)
     {
-        evaluator.rotate_vector_inplace(dup, 1, gal_keys);
-        evaluator.add_inplace(mult, dup);
+        Ciphertext tmp;
+        evaluator.rotate_vector(dup, i, gal_keys, tmp);
+        // evaluator.add_inplace(mult, dup);
+        results[i] = tmp;
+    }
+
+    for(int i = 1; i < size; i++) {
+        evaluator.add_inplace(mult, results[i]);
     }
 
     // cout << "\nMult Info:\n";
@@ -577,60 +587,6 @@ void compute_all_powers(const Ciphertext &ctx, int degree, Evaluator &evaluator,
     return;
 }
 
-// Gets a random float between a and b
-float RandomFloat(float a, float b)
-{
-    float random = ((float)rand()) / (float)RAND_MAX;
-    float diff = b - a;
-    float r = random * diff;
-    return a + r;
-}
-
-// CSV to string matrix converter
-vector<vector<string>> CSVtoMatrix(string filename)
-{
-    vector<vector<string>> result_matrix;
-
-    ifstream data(filename);
-    string line;
-    int line_count = 0;
-    while (getline(data, line))
-    {
-        stringstream lineStream(line);
-        string cell;
-        vector<string> parsedRow;
-        while (getline(lineStream, cell, ','))
-        {
-            parsedRow.push_back(cell);
-        }
-        result_matrix.push_back(parsedRow);
-        // Skip first line since it has text instead of numbers
-        /*
-        if (line_count != 0)
-        {
-            result_matrix.push_back(parsedRow);
-        }
-        */
-        line_count++;
-    }
-    return result_matrix;
-}
-
-// String matrix to float matrix converter
-vector<vector<double>> stringToDoubleMatrix(vector<vector<string>> matrix)
-{
-    vector<vector<double>> result(matrix.size(), vector<double>(matrix[0].size()));
-    for (int i = 0; i < matrix.size(); i++)
-    {
-        for (int j = 0; j < matrix[0].size(); j++)
-        {
-            result[i][j] = ::atof(matrix[i][j].c_str());
-            result[i][j] = static_cast<double>(result[i][j]);
-        }
-    }
-
-    return result;
-}
 
 // Mean calculation
 double getMean(vector<double> input_vec)
