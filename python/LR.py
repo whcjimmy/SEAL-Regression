@@ -22,7 +22,7 @@ def train_LR(dataset, learning_rate, iteration_times, approx, weights = None):
         W = W - learning_rate * T
         model_list.append(W)
 
-    plot_train_acc_curve(model_list, dataset)
+    # plot_train_acc_curve(model_list, dataset)
     return W
 
 

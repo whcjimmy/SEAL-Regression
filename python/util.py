@@ -3,8 +3,23 @@ import json
 import numpy as np
 from scipy import stats
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_breast_cancer
 from sklearn.datasets import make_circles, make_moons
+
+
+def switch_labels(labels):
+    return [1 if y == 1 else -1 for y in labels]
+
+
+def package_dataset(training_x, training_y, testing_x, testing_y):
+    data = {}
+    data['training_x'] = training_x
+    data['training_y'] = training_y
+    data['testing_x'] = testing_x
+    data['testing_y'] = testing_y
+
+    return data
 
 
 def read_lbw():
@@ -95,30 +110,22 @@ def read_load_breast_cancer():
 
 
 def read_make_circles():
-    data = {}
-    n_samples = 400
-    samples, labels = make_circles(n_samples = n_samples, noise = 0.5, factor = 0.9, random_state = 1)
-    samples = samples
-    n_samples = int(n_samples * 0.8)
-    data['training_x'] = samples[: n_samples]
-    data['training_y'] = labels[: n_samples]
-    data['testing_x'] = samples[n_samples:]
-    data['testing_y'] = labels[n_samples:]
+    # samples, labels = make_circles(n_samples = 1000, noise = 0.1, factor = 0.5)
+    samples, labels = make_circles(n_samples = 400, noise = 0.1, factor = 0.5, random_state = 1)
+    labels = switch_labels(labels)
+    training_x, testing_x, training_y, testing_y = train_test_split(samples, labels, test_size = 0.2, random_state = 42)
+    dataset = package_dataset(training_x, training_y, testing_x, testing_y)
 
-    return data
+    return dataset
 
 
 def read_make_moons():
-    data = {}
-    n_samples = 400
-    samples, labels = make_moons(n_samples = n_samples, noise = 0.2, random_state = 1)
-    n_samples = int(n_samples * 0.8)
-    data['training_x'] = samples[: n_samples]
-    data['training_y'] = labels[: n_samples]
-    data['testing_x'] = samples[n_samples:]
-    data['testing_y'] = labels[n_samples:]
+    samples, labels = make_moons(n_samples = 400, noise = 0.1, random_state = 1)
+    labels = switch_labels(labels)
+    training_x, testing_x, training_y, testing_y = train_test_split(samples, labels, test_size = 0.2, random_state = 42)
+    dataset = package_dataset(training_x, training_y, testing_x, testing_y)
 
-    return data
+    return dataset
 
 
 def read_weight(weight_filename):
