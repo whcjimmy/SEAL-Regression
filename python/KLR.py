@@ -19,10 +19,7 @@ def get_Kernel(dataset_1, dataset_2, kernel_type = None, gamma = None, power = N
                 tmp = -1.0 * gamma * sum([(data_1[x] - data_2[x])**2 for x in range(data_dimension)])
                 K[i][j] = 1 + tmp + (tmp ** 2) / 2 
                 # K[i][j] = 1 + tmp + (tmp ** 2) / 2 + (tmp ** 3) / 6 + (tmp ** 4) / 24
-                '''
-                K[i][j] = np.exp(-1.0 * gamma * \
-                                 sum([(data_1[x] - data_2[x])**2 for x in range(data_dimension)]))
-                '''
+                K[i][j] = np.exp(-1.0 * gamma * sum([(data_1[x] - data_2[x])**2 for x in range(data_dimension)]))
     return K
 
 
@@ -52,9 +49,7 @@ def avg_kernel(beta, K, labels):
 
 
 def test_klr(beta, K_in, K_out, data):
-    training_x = data['training_x']
     training_y = data['training_y']
-    testing_x = data['testing_x']
     testing_y = data['testing_y']
     avg_in = avg_kernel(beta, K_in, training_y)
     avg_out = avg_kernel(beta, K_out, testing_y)

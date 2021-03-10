@@ -22,7 +22,7 @@ sigmoid_y = np.array([sigmoid(x) for x in sigmoid_x])
 data = {}
 
 # Original Version
-for deg in range(3, 11, 4):
+for deg in range(3, 10, 1):
     print(deg)
     z = np.polyfit(sigmoid_x, sigmoid_y, deg)
     poly = np.poly1d(z)
