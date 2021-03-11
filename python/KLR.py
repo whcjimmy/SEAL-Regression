@@ -2,6 +2,7 @@ import util
 import pdb
 import random
 import numpy as np
+from sklearn.metrics import f1_score
 
 
 def get_Kernel(dataset_1, dataset_2, kernel_type = None, gamma = None, power = None):
@@ -19,7 +20,7 @@ def get_Kernel(dataset_1, dataset_2, kernel_type = None, gamma = None, power = N
                 tmp = -1.0 * gamma * sum([(data_1[x] - data_2[x])**2 for x in range(data_dimension)])
                 K[i][j] = 1 + tmp + (tmp ** 2) / 2 
                 # K[i][j] = 1 + tmp + (tmp ** 2) / 2 + (tmp ** 3) / 6 + (tmp ** 4) / 24
-                K[i][j] = np.exp(-1.0 * gamma * sum([(data_1[x] - data_2[x])**2 for x in range(data_dimension)]))
+                # K[i][j] = np.exp(-1.0 * gamma * sum([(data_1[x] - data_2[x])**2 for x in range(data_dimension)]))
     return K
 
 
@@ -34,6 +35,7 @@ def train_KLR(K, training_y, learning_rate, iteration_times, approx, lamba, weig
             T.append(t)
         T = l2_reg + np.sum(T, axis = 0) / data_size
         beta = beta - learning_rate * T
+        # print(beta)
 
     return beta
 
@@ -53,5 +55,7 @@ def test_klr(beta, K_in, K_out, data):
     testing_y = data['testing_y']
     avg_in = avg_kernel(beta, K_in, training_y)
     avg_out = avg_kernel(beta, K_out, testing_y)
+    # print("training f1 ", f1_score(np.sign(np.dot(K_in.T, beta)), training_y))
+    # print("testing f1 ", f1_score(np.sign(np.dot(K_out.T, beta)), testing_y))
     print("avg_in = %.3f avg_out = %.3f " % (avg_in, avg_out))
     return avg_in, avg_out

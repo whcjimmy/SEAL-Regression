@@ -13,8 +13,8 @@ def integrand(x, poly):
     return poly(x) - sigmoid(x)
 
 
-range_min = -15
-range_max = 15
+range_min = -50
+range_max = 50
 
 sigmoid_x = np.array([x/10 for x in range(10 * range_min, 10 * range_max)])
 sigmoid_y = np.array([sigmoid(x) for x in sigmoid_x])
@@ -40,7 +40,7 @@ for deg in range(3, 10, 1):
 
 plt.plot(sigmoid_x, sigmoid_y, label='sigmoid')
 
-plt.axis([-15, 15, -0.25, 1.25])
+plt.axis([range_min, range_max, -0.25, 1.25])
 plt.legend()
 plt.savefig('./plot_sigmoid.png')
 

@@ -17,8 +17,8 @@ from sklearn.linear_model import LogisticRegression
 # dataset = util.read_banknote()
 # dataset = util.read_heart_disease()
 # dataset = util.read_load_breast_cancer()
-dataset = util.read_make_circles()
-# dataset = util.read_make_moons()
+# dataset = util.read_make_circles()
+dataset = util.read_make_moons()
 
 training_x = dataset['training_x']
 training_y = dataset['training_y']
@@ -30,7 +30,6 @@ testing_y = dataset['testing_y']
 weights_dict = util.read_weight('./weights.out')
 for k in weights_dict.keys():
     weights_dict[k].reverse()
-
 
 '''
 # Parameters Settings
@@ -57,21 +56,15 @@ for deg in range(3, 10, 2):
 '''
 
 # KERNELS
-learning_rate = 0.001
 iteration_times = 20
 
-'''
 learning_rate_list = [0.1, 0.01, 0.001]
-gamma_list = [1, 0.5, 0.1, 0.01]
-lamba_list = [1, 0.5, 0.1, 0.01]
-'''
-learning_rate_list = [1, 0.1, 0.01]
-gamma_list = [1, 0.1]
-lamba_list = [1, 0.1]
+lamba_list = [0.1, 0.01]
+gamma_list = [2, 1, 0.1]
 
 # kernel_type_list = ['linear', 'polynomial', 'rbf']
 kernel_type_list = ['polynomial']
-poly_deg = 2
+poly_deg = 3
 
 for learning_rate, gamma, lamba, kernel in list(itertools.product(learning_rate_list, gamma_list, lamba_list, kernel_type_list)):
     print('\n\n>>>>>   ', learning_rate, lamba, gamma, '   <<<<<')

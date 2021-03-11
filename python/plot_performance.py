@@ -19,21 +19,28 @@ for k in weights_dict.keys():
 
 
 # Data Settings 
-iteration_times = 20
+iteration_times = 40
 dataset_list = [util.read_make_circles(), util.read_make_moons()]
+
 '''
+# make_circles
 classifiers_list = [{'model': 'LR', 'sigmoid_deg': 3, 'learning_rate': 0.1},
                     {'model': 'LR', 'sigmoid_deg': 7, 'learning_rate': 0.1},
-                    {'model': 'KLR', 'sigmoid_deg': 3, 'learning_rate': 0.1, 'lamba': 0.1, 'kernel': 'linear'},
-                    {'model': 'KLR', 'sigmoid_deg': 7, 'learning_rate': 0.1, 'lamba': 0.1, 'kernel': 'linear'},
-                    {'model': 'KLR', 'sigmoid_deg': 3, 'learning_rate': 0.1, 'lamba': 0.1, 'kernel': 'polynomial', 'poly_deg': 3, 'gamma': 1.0},
-                    {'model': 'KLR', 'sigmoid_deg': 7, 'learning_rate': 0.1, 'lamba': 0.1, 'kernel': 'polynomial', 'poly_deg': 3, 'gamma': 1.0},
-                    {'model': 'KLR', 'sigmoid_deg': 3, 'learning_rate': 0.01, 'lamba': 0.1, 'kernel': 'rbf', 'gamma': 0.5},
-                    {'model': 'KLR', 'sigmoid_deg': 7, 'learning_rate': 0.01, 'lamba': 0.1, 'kernel': 'rbf', 'gamma': 0.5}]
+                    {'model': 'KLR_linear', 'sigmoid_deg': 3, 'learning_rate': 0.1, 'lamba': 0.1, 'kernel': 'linear'},
+                    {'model': 'KLR_linear', 'sigmoid_deg': 7, 'learning_rate': 0.1, 'lamba': 0.1, 'kernel': 'linear'},
+                    {'model': 'KLR_polynomial', 'sigmoid_deg': 3, 'learning_rate': 0.01, 'lamba': 0.01, 'kernel': 'polynomial', 'poly_deg': 3, 'gamma': 1.0},
+                    {'model': 'KLR_polynomial', 'sigmoid_deg': 7, 'learning_rate': 0.01, 'lamba': 0.001, 'kernel': 'polynomial', 'poly_deg': 3, 'gamma': 1.0},
+                    {'model': 'KLR_rbf', 'sigmoid_deg': 3, 'learning_rate': 0.01, 'lamba': 0.1, 'kernel': 'rbf', 'gamma': 0.5}]
 '''
-classifiers_list = [ {'model': 'KLR', 'sigmoid_deg': 3, 'learning_rate': 0.01, 'lamba': 0.1, 'kernel': 'rbf', 'gamma': 0.5},
-                    {'model': 'KLR', 'sigmoid_deg': 7, 'learning_rate': 0.01, 'lamba': 0.1, 'kernel': 'rbf', 'gamma': 0.5}]
-{'model': 'LR', 'sigmoid_deg': 3, 'learning_rate': 0.1,
+# make_moons
+classifiers_list = [{'model': 'LR', 'sigmoid_deg': 3, 'learning_rate': 0.1},
+                    {'model': 'LR', 'sigmoid_deg': 7, 'learning_rate': 0.1},
+                    {'model': 'KLR_linear', 'sigmoid_deg': 3, 'learning_rate': 0.1, 'lamba': 0.1, 'kernel': 'linear'},
+                    {'model': 'KLR_linear', 'sigmoid_deg': 7, 'learning_rate': 0.1, 'lamba': 0.1, 'kernel': 'linear'},
+                    {'model': 'KLR_polynomial', 'sigmoid_deg': 3, 'learning_rate': 0.001, 'lamba': 0.1, 'kernel': 'polynomial', 'poly_deg': 3, 'gamma': 0.1},
+                    {'model': 'KLR_polynomial', 'sigmoid_deg': 7, 'learning_rate': 0.001, 'lamba': 0.01, 'kernel': 'polynomial', 'poly_deg': 3, 'gamma': 0.1},
+                    {'model': 'KLR_rbf', 'sigmoid_deg': 3, 'learning_rate': 0.01, 'lamba': 0.1, 'kernel': 'rbf', 'gamma': 1}]
+
 # Plot Settings 
 h = 0.2
 plot_idx = 1
@@ -87,7 +94,7 @@ for ds_cnt, dataset in enumerate(dataset_list):
             Z = Z.reshape(xx.shape)
 
             ax.contourf(xx, yy, Z, cmap = cm, alpha = 0.8)
-        elif model == 'KLR':
+        elif 'KLR' in model:
             sigmoid_deg = clf_dict['sigmoid_deg']
             learning_rate = clf_dict['learning_rate']
             kernel = clf_dict['kernel']
@@ -108,18 +115,10 @@ for ds_cnt, dataset in enumerate(dataset_list):
                 K_out = KLR.get_Kernel(training_x, testing_x, kernel, gamma)
                 K_mesh = KLR.get_Kernel(training_x, np.c_[xx.ravel(), yy.ravel()], kernel, gamma)
 
-            beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 0, lamba)
-            '''
-            if kernel == 'rbf':
-                pdb.set_trace()
-            '''
-
+            beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 2, lamba, weights_dict[str(sigmoid_deg)])
             avg_in, avg_out = KLR.test_klr(beta, K_in, K_out, dataset)
 
-
             Z = np.dot(K_mesh.T, beta)
-            if kernel == 'rbf':
-                pdb.set_trace()
             Z = Z.reshape(xx.shape)
 
             ax.contourf(xx, yy, Z, cmap = cm, alpha = 0.8)

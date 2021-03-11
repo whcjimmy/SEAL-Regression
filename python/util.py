@@ -120,7 +120,7 @@ def read_make_circles():
 
 
 def read_make_moons():
-    samples, labels = make_moons(n_samples = 400, noise = 0.1, random_state = 1)
+    samples, labels = make_moons(n_samples = 400, noise = 0.3, random_state = 1)
     labels = switch_labels(labels)
     training_x, testing_x, training_y, testing_y = train_test_split(samples, labels, test_size = 0.2, random_state = 42)
     dataset = package_dataset(training_x, training_y, testing_x, testing_y)
