@@ -2,6 +2,7 @@ import util
 import pdb
 import random
 import numpy as np
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.metrics import f1_score
 
 
@@ -34,8 +35,12 @@ def train_KLR(K, training_y, learning_rate, iteration_times, approx, lamba, weig
             t = util.approx_func(approx, beta, data, label, weights) * (-1) * label * data
             T.append(t)
         T = l2_reg + np.sum(T, axis = 0) / data_size
+        # max_scale = max([np.floor(np.log10(x)) for x in T])
+        # T = np.array([x / np.power(10, max_scale) for x in T])
+
+        T = StandardScaler().fit_transform(T.reshape(-1, 1)).reshape(-1,)
+        # print(max(T), min(T))
         beta = beta - learning_rate * T
-        # print(beta)
 
     return beta
 
