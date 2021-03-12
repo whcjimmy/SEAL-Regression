@@ -1,0 +1,10 @@
+python3 plot_sigmoid.py 20
+python3 plot_sigmoid.py 40
+python3 plot_sigmoid.py 60
+python3 plot_sigmoid.py 80
+python3 plot_sigmoid.py 100
+python3 plot_sigmoid.py 120
+python3 plot_sigmoid.py 140
+python3 plot_sigmoid.py 160
+python3 plot_sigmoid.py 180
+python3 plot_sigmoid.py 200

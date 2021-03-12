@@ -1,124 +1,7 @@
 import pdb
 import json
 import numpy as np
-from scipy import stats
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.datasets import load_breast_cancer
-from sklearn.datasets import make_circles, make_moons
-
-
-def read_lbw():
-    data = {}
-    with open('./datasets/logistic/lowbwt.dat') as f:
-        ff = [x.rstrip() for x in f.readlines()]
-        ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
-        ff = np.array(ff)
-        np.random.shuffle(ff)
-    samples = np.delete(ff, [0, 1], axis = 1)
-    labels = np.array([1 if x == 1 else -1 for x in ff[:, 1]])
-    data['training_x'] = samples
-    data['training_y'] = labels
-    data['testing_x'] = samples
-    data['testing_y'] = labels
-
-    return data
-
-
-def read_pulsar_stars():
-    data = {}
-    with open('./datasets/pulsar_stars.csv') as f:
-        ff = [x.rstrip() for x in f.readlines()]
-        ff = ff[1:]
-        ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
-        ff = np.array(ff)
-        # np.random.shuffle(ff)
-    samples = ff[:, :-1]
-    labels = np.array([1 if x == 1 else -1 for x in ff[:,-1]])
-    data['training_x'] = samples[:14318, :]
-    data['training_y'] = labels[:14318]
-    data['testing_x'] = samples[14318:, :]
-    data['testing_y'] = labels[14318:]
-
-    return data
-
-
-def read_banknote():
-    data = {}
-    with open('./datasets/banknote/data_banknote_authentication.txt') as f:
-        ff = [x.rstrip() for x in f.readlines()]
-        ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
-        ff = np.array(ff)
-        np.random.shuffle(ff)
-    samples = ff[:, :-1]
-    labels = np.array([1 if x == 1 else -1 for x in ff[:,-1]])
-    data['training_x'] = samples[:1100, :]
-    data['training_y'] = labels[:1100]
-    data['testing_x'] = samples[1100:, :]
-    data['testing_y'] = labels[1100:]
-
-    return data
-
-
-def read_heart_disease():
-    data = {}
-    with open('./datasets/Heart-Disease-Machine-Learning/data.csv') as f:
-        ff = [x.rstrip() for x in f.readlines()]
-        ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
-        ff = np.array(ff)
-        # np.random.shuffle(ff)
-    samples = data_preprocess(ff[:, :-1], 2)
-    # samples = ff[:, :-1]
-    labels = np.array([1 if x == 1 else -1 for x in ff[:,-1]])
-
-    data['training_x'] = samples[: 736]
-    data['testing_x'] = samples[736:]
-    data['training_y'] = labels[: 736]
-    data['testing_y'] = labels[736:]
-
-    return data
-
-
-def read_load_breast_cancer():
-    data = {}
-    dataset = load_breast_cancer()
-    samples = dataset.data
-    labels = dataset.target
-    samples = data_preprocess(samples, 2)
-    labels = np.array([1 if x == 1 else -1 for x in labels])
-
-    data['training_x'] = samples[:364, :]
-    data['training_y'] = labels[:364]
-    data['testing_x'] = samples[364:, :]
-    data['testing_y'] = labels[364:]
-
-    return data
-
-
-def read_make_circles():
-    data = {}
-    n_samples = 400
-    samples, labels = make_circles(n_samples = n_samples, noise = 0.5, factor = 0.9, random_state = 1)
-    samples = samples
-    n_samples = int(n_samples * 0.8)
-    data['training_x'] = samples[: n_samples]
-    data['training_y'] = labels[: n_samples]
-    data['testing_x'] = samples[n_samples:]
-    data['testing_y'] = labels[n_samples:]
-
-    return data
-
-
-def read_make_moons():
-    data = {}
-    n_samples = 400
-    samples, labels = make_moons(n_samples = n_samples, noise = 0.2, random_state = 1)
-    n_samples = int(n_samples * 0.8)
-    data['training_x'] = samples[: n_samples]
-    data['training_y'] = labels[: n_samples]
-    data['testing_x'] = samples[n_samples:]
-    data['testing_y'] = labels[n_samples:]
-
-    return data
+import matplotlib.pyplot as plt
 
 
 def read_weight(weight_filename):
@@ -144,41 +27,37 @@ def approx_func(approx, model, data, label, weights = None):
         for i in range(len(weights)):
             tmp = tmp + weights[i] * (value ** i)
 
-        return tmp
+    return tmp
 
-def data_preprocess(samples, preprocesss_type):
-    if preprocesss_type == 1:
-        # Feature Scaling (Standardization)
-        samples = stats.zscore(samples)
-    elif preprocesss_type == 2:
-        # Feature Scaling (min-max normalization)
-        scaler = MinMaxScaler()
-        scaler.fit(samples)
-        samples = scaler.transform(samples)
-    elif preprocesss_type == 3:
-        # Normalize
-        samples_col_sums = np.sum(samples, axis = 0)
-        samples_norm = samples / samples_col_sums[np.newaxis, :]
-        samples = samples_norm
 
-    return samples
-    '''
-    # Normalize
-    training_x_col_sums = np.sum(training_x, axis = 0)
-    training_x_norm = training_x / training_x_col_sums[np.newaxis, :]
-    '''
+def accuracy(model, data, labels):
+    score = np.dot(data, model)
+    return np.mean(np.sign(score) == labels)
 
-    '''
-    # Feature Scaling (Standardization)
-    training_x = stats.zscore(training_x)
-    testing_x  = stats.zscore(testing_x)
-    '''
 
-    '''
-    # Feature Scaling (min-max normalization)
-    scaler = MinMaxScaler()
-    scaler.fit(training_x)
-    training_x = scaler.transform(training_x)
-    scaler.fit(testing_x)
-    testing_x = scaler.transform(testing_x)
-    '''
+def test_model(model, dataset):
+    training_x = dataset['training_x']
+    training_y = dataset['training_y']
+    testing_x = dataset['testing_x']
+    testing_y = dataset['testing_y']
+    avg_in = accuracy(model, training_x, training_y)
+    avg_out = accuracy(model, testing_x, testing_y)
+    print("avg_in = %.3f avg_out = %.3f " % (avg_in, avg_out))
+    return avg_in, avg_out
+
+
+def plot_train_acc_curve(model_list, dataset, params):
+    # x-axis
+    label_x = [i for i in range(len(model_list))]
+
+    # y-axis
+    training_x = dataset['training_x']
+    training_y = dataset['training_y']
+    pred_y = [accuracy(W, training_x, training_y) for W in model_list]
+    # print(pred_y)
+
+    # plt
+    plt.plot(label_x, pred_y, label=params)
+
+    plt.legend()
+    plt.savefig('./accuracy.png')
