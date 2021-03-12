@@ -1,10 +1,11 @@
+import sys
 import pdb
 import numpy as np
 import math
 import matplotlib.pyplot as plt
 
-range_min = -15
-range_max = 15
+range_max = int(sys.argv[1])
+range_min = -1 * range_max
 
 e_x = np.array([x/10 for x in range(10 * range_min, 10 * range_max)])
 e_y = np.array([np.exp(x) for x in e_x])
@@ -32,5 +33,5 @@ plt.plot(e_x, e_y, label='e^x')
 plt.axis([-15, 5, 0, 10])
 plt.legend()
 
-plt.savefig('./plot_exp.png')
+plt.savefig('./plot/exp.png')
 

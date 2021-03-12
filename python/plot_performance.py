@@ -1,6 +1,7 @@
 import util
-import LR
-import KLR
+import train
+import read_data
+
 import pdb
 import itertools
 import numpy as np
@@ -13,14 +14,14 @@ from sklearn.linear_model import LogisticRegression
 
 
 #Original Load Weights
-weights_dict = util.read_weight('./weights.out')
+weights_dict = util.read_weight('./poly_sigmoid_weights/weights_100.out')
 for k in weights_dict.keys():
     weights_dict[k].reverse()
 
 
 # Data Settings 
 iteration_times = 40
-dataset_list = [util.read_make_circles(), util.read_make_moons()]
+dataset_list = [read_data.read_make_circles(), read_data.read_make_moons()]
 
 '''
 # make_circles
@@ -87,8 +88,8 @@ for ds_cnt, dataset in enumerate(dataset_list):
             sigmoid_deg = clf_dict['sigmoid_deg']
             learning_rate = clf_dict['learning_rate']
 
-            W = LR.train_LR(dataset, learning_rate, iteration_times, 2, weights_dict[str(sigmoid_deg)])
-            avg_in, avg_out = LR.test_lr(W, dataset)
+            W = train.train_model(False, dataset, learning_rate, iteration_times, 2, weights = weights_dict[str(sigmoid_deg)])
+            avg_in, avg_out = util.test_model(W, dataset)
 
             Z = np.dot(np.c_[xx.ravel(), yy.ravel()], W)
             Z = Z.reshape(xx.shape)
@@ -100,25 +101,28 @@ for ds_cnt, dataset in enumerate(dataset_list):
             kernel = clf_dict['kernel']
             lamba = clf_dict['lamba']
             if kernel == 'linear':
-                K_in = KLR.get_Kernel(training_x, training_x, kernel)
-                K_out = KLR.get_Kernel(training_x, testing_x, kernel)
-                K_mesh = KLR.get_Kernel(training_x, np.c_[xx.ravel(), yy.ravel()], kernel)
+                K_in = train.get_Kernel(training_x, training_x, kernel)
+                K_out = train.get_Kernel(testing_x, training_x, kernel)
+                K_mesh = train.get_Kernel(np.c_[xx.ravel(), yy.ravel()], training_x, kernel)
             elif kernel == 'polynomial':
                 poly_deg = clf_dict['poly_deg']
                 gamma = clf_dict['gamma']
-                K_in = KLR.get_Kernel(training_x, training_x, kernel, gamma, poly_deg)
-                K_out = KLR.get_Kernel(training_x, testing_x, kernel, gamma, poly_deg)
-                K_mesh = KLR.get_Kernel(training_x, np.c_[xx.ravel(), yy.ravel()], kernel, gamma, poly_deg)
+                K_in = train.get_Kernel(training_x, training_x, kernel, gamma, poly_deg)
+                K_out = train.get_Kernel(testing_x, training_x, kernel, gamma, poly_deg)
+                K_mesh = train.get_Kernel(np.c_[xx.ravel(), yy.ravel()], training_x, kernel, gamma, poly_deg)
             elif kernel == 'rbf':
                 gamma = clf_dict['gamma']
-                K_in = KLR.get_Kernel(training_x, training_x, kernel, gamma)
-                K_out = KLR.get_Kernel(training_x, testing_x, kernel, gamma)
-                K_mesh = KLR.get_Kernel(training_x, np.c_[xx.ravel(), yy.ravel()], kernel, gamma)
+                K_in = train.get_Kernel(training_x, training_x, kernel, gamma)
+                K_out = train.get_Kernel(testing_x, training_x, kernel, gamma)
+                K_mesh = train.get_Kernel(np.c_[xx.ravel(), yy.ravel()], training_x, kernel, gamma)
+            
+            dataset['training_x'] = K_in
+            dataset['testing_x'] = K_out
 
-            beta = KLR.train_KLR(K_in, training_y, learning_rate, iteration_times, 2, lamba, weights_dict[str(sigmoid_deg)])
-            avg_in, avg_out = KLR.test_klr(beta, K_in, K_out, dataset)
+            beta = train.train_model(True, dataset, learning_rate, iteration_times, 2, lamba, weights_dict[str(sigmoid_deg)])
+            avg_in, avg_out = util.test_model(beta, dataset)
 
-            Z = np.dot(K_mesh.T, beta)
+            Z = np.dot(K_mesh, beta)
             Z = Z.reshape(xx.shape)
 
             ax.contourf(xx, yy, Z, cmap = cm, alpha = 0.8)
