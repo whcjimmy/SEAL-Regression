@@ -1,3 +1,5 @@
+python3 simulate_sigmoid.py 5
+python3 simulate_sigmoid.py 10
 python3 simulate_sigmoid.py 20
 python3 simulate_sigmoid.py 40
 python3 simulate_sigmoid.py 60

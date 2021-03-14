@@ -29,9 +29,8 @@ void test_accuracy(vector<double> weights, vector<vector<double>> testing_x, vec
 int main()
 {
     // read file
-    // string filename = "pulsar_stars.csv";
-    // string filename = "./python/datasets/Heart-Disease-Machine-Learning/data.csv";
-    string filename = "./python/datasets/breast_cancer/data.csv";
+    // string filename = "./python/datasets/breast_cancer/data.csv";
+    string filename = "./python/datasets/make_circles.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
     vector<vector<double>> f_matrix = stringTodoubleMatrix(s_matrix);
     // random_shuffle(f_matrix.begin(), f_matrix.end());
@@ -46,7 +45,7 @@ int main()
     // Init labels (rows of f_matrix)
     vector<double> labels(total_rows);
 
-    int training_rows = 364;
+    int training_rows = 400;
     int testing_rows = total_rows - training_rows;
     vector<vector<double>> training_x(training_rows, vector<double>(total_cols));
     vector<vector<double>> testing_x(testing_rows, vector<double>(total_cols));
@@ -81,16 +80,16 @@ int main()
     double poly_deg = 3;
     // double poly_deg = 7;
 
-    vector<double> coeffs = {0.50081, 0.08937, -0.00001, -0.00297};
+    vector<double> coeffs = {0.5009117914058876, 0.19832549320270615, -0.0001824312536790085, -0.0044735810103240774};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
 
 
     // Parameters Settings
-    int col_A = 15;
+    int col_A = 1;
     int col_B = total_cols - col_A;
 
-    double learning_rate = 1;
-    int iter_times = 30;
+    double learning_rate = 0.001;
+    int iter_times = 20;
 
     // Calculate gradient descents in the plaintext domain
     vector<double> delta_w(total_cols, 0.0);

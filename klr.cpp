@@ -29,9 +29,8 @@ void test_accuracy(vector<double> weights, vector<vector<double>> testing_x, vec
 int main()
 {
     // read file
-    // string filename = "pulsar_stars.csv";
-    // string filename = "./python/datasets/Heart-Disease-Machine-Learning/data.csv";
-    string filename = "./python/datasets/breast_cancer/data.csv";
+    // string filename = "./python/datasets/breast_cancer/data.csv";
+     string filename = "./python/datasets/make_circles.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
     vector<vector<double>> f_matrix = stringTodoubleMatrix(s_matrix);
     // random_shuffle(f_matrix.begin(), f_matrix.end());
@@ -46,7 +45,7 @@ int main()
     // Init labels (rows of f_matrix)
     vector<double> labels(total_rows);
 
-    int training_rows = 364;
+    int training_rows = 400;
     int testing_rows = total_rows - training_rows;
     vector<vector<double>> training_x(training_rows, vector<double>(total_cols));
     vector<vector<double>> testing_x(testing_rows, vector<double>(total_cols));
@@ -81,25 +80,25 @@ int main()
     double poly_deg = 3;
     // double poly_deg = 7;
 
-    vector<double> coeffs = {0.50081, 0.08937, -0.00001, -0.00297};
+    vector<double> coeffs = {0.50091, 0.19832, -0.00018, -0.00447};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
 
 
     // Parameters Settings
-    int col_A = 15;
+    int col_A = 1;
     int col_B = total_cols - col_A;
 
-    double learning_rate = 0.001;
+    double learning_rate = 0.01;
     int iter_times = 20;
-    iter_times = 10;
-    double gamma  = 0.1;
-    double lambda = 0.01;
+    double lambda = 0.1;
+    double gamma  = 1;
     int poly_kernel_deg = 3;
 
     // KERNEL
     vector<vector<double>> training_kernel(training_rows, vector<double>(training_rows));
     vector<vector<double>> testing_kernel(testing_rows, vector<double>(training_rows));
 
+    /*
     cout << "---------- LINEAR KERNEL ----------" <<endl;
     // Training Kernel
     for(int i = 0; i < training_rows; i++) {
@@ -113,6 +112,7 @@ int main()
             testing_kernel[i][j] = vector_dot_product(testing_x[i], training_x[j]);
         }
     }
+    */
 
     /*
     cout << "---------- POLYNOMIAL KERNEL ----------" <<endl;
@@ -138,6 +138,7 @@ int main()
             testing_kernel[i][j] = pow(testing_kernel[i][j], poly_kernel_deg);
         }
     }
+    */
 
     cout << "---------- RBF KERNEL ----------" <<endl;
     // Training Kernel
@@ -160,7 +161,6 @@ int main()
             testing_kernel[i][j] = 1 + testing_kernel[i][j] + pow(testing_kernel[i][j], 2) / 2;
         }
     }
-    */
 
 
     // Calculate gradient descents in the plaintext domain

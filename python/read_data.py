@@ -1,6 +1,7 @@
 import pdb
 import json
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_breast_cancer
@@ -91,12 +92,15 @@ def read_load_breast_cancer():
 
 
 def read_make_circles():
-    samples, labels = make_circles(n_samples = 500, noise = 0.1, factor = 0.5, random_state = 1)
-    # samples, labels = make_circles(noise = 0.2, factor = 0.5, random_state = 1)
+    samples, labels = make_circles(n_samples = 500, noise = 0.1, factor = 0.3, random_state = 1)
     # samples = data_preprocess(samples, 'StandardScaler')
     labels = switch_labels(labels)
     training_x, testing_x, training_y, testing_y = train_test_split(samples, labels, test_size = 0.2)
     dataset = package_dataset(training_x, training_y, testing_x, testing_y)
+
+    samples = np.concatenate((samples, np.array(labels).reshape(-1, 1)), axis = 1)
+    pd.DataFrame(samples).to_csv('./datasets/make_circles.csv', header = False, index = False)
+
 
     return dataset
 

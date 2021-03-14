@@ -98,9 +98,8 @@ int main()
     chrono::milliseconds time_diff;
 
     // Read File
-    // string filename = "pulsar_stars.csv";
-    // string filename = "./python/datasets/Heart-Disease-Machine-Learning/data.csv";
-    string filename = "./python/datasets/breast_cancer/data.csv";
+    // string filename = "./python/datasets/breast_cancer/data.csv";
+    string filename = "./python/datasets/make_circles.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
     vector<vector<double>> f_matrix = stringTodoubleMatrix(s_matrix);
     // random_shuffle(f_matrix.begin(), f_matrix.end());
@@ -113,7 +112,7 @@ int main()
 
     vector<vector<double>> features(total_rows, vector<double>(total_cols));
 
-    int training_rows = 364;
+    int training_rows = 400;
     int testing_rows = total_rows - training_rows;
     vector<vector<double>> training_x(training_rows, vector<double>(total_cols));
     vector<vector<double>> testing_x(testing_rows, vector<double>(total_cols));
@@ -148,18 +147,18 @@ int main()
     double poly_deg = 3;
     // double poly_deg = 7;
 
-    vector<double> coeffs = {0.50081, 0.08937, -0.00001, -0.00297};
+    vector<double> coeffs = {0.50014, 0.01404, -0.00000007, -0.000001};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
 
 
     // Parameters Settings
-    int col_A = 15;
+    int col_A = 1;
     int col_B = total_cols - col_A;
 
+    int iter_times = 20;
     double learning_rate = 0.01;
-    int iter_times = 30;
-    double gamma  = 0.1;
-    double lambda = 0.01;
+    double lambda = 0.1;
+    double gamma  = 1;
     int poly_kernel_deg = 3;
 
     // seperate features into two parts
@@ -175,6 +174,7 @@ int main()
         }
     }
 
+    /*
     // -------- LINEAR KERNEL --------
     cout << " -------- LINEAR KERNEL -------- " << endl;
     // calculate kernel_A
@@ -201,8 +201,8 @@ int main()
             testing_kernel[i][j] = vector_dot_product(testing_x[i], training_x[j]);
         }
     }
+    */
 
-    /*
     // -------- Polynomial KERNEL --------
     cout << " -------- Polynomial KERNEL -------- " << endl;
     // calculate kernel_A
@@ -236,7 +236,6 @@ int main()
             testing_kernel[i][j] = pow(testing_kernel[i][j], poly_kernel_deg);
         }
     }
-    */
 
     bool is_rbf = false;
     vector<vector<double>> kernel_A_2(training_rows, vector<double>(training_rows));
@@ -245,7 +244,6 @@ int main()
     // -------- RBF KERNEL --------
     cout << " -------- RBF KERNEL -------- " << endl;
     is_rbf = true;
-    gamma = 0.5;
     vector<vector<double>> kernel_2(training_rows, vector<double>(training_rows));
 
     // calculate kernel_A
@@ -379,14 +377,15 @@ int main()
     vector<Ciphertext> kernel_cipher(training_rows);  // x
     vector<Ciphertext> kernel_diagonals_cipher(training_rows);  // x diagonal
 
+    /*
     // LINEAR KERNEL
 #pragma omp parallel for
     for(int i = 0; i < training_rows; i++) {
         evaluator.add(kernel_A_cipher[i], kernel_B_cipher[i], kernel_cipher[i]);
         evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
     }
+    */
     
-    /*
     // POLYNOMIAL KERNEL
 #pragma omp parallel for
     for(int i = 0; i < training_rows; i++) {
@@ -404,10 +403,9 @@ int main()
         compute_all_powers(kernel_diagonals_cipher[i], poly_kernel_deg, evaluator, relin_keys, kernel_D_powers_cipher);
         kernel_diagonals_cipher[i] = kernel_D_powers_cipher[poly_kernel_deg];
     }
-    */
     
-    // RBF KERNEL
     /*
+    // RBF KERNEL
     if(is_rbf == true) {
         vector<Ciphertext> kernel_2_cipher(training_rows);
         vector<Ciphertext> kernel_2_D_cipher(training_rows);
@@ -477,7 +475,6 @@ int main()
 
 // #pragma omp parallel for
         for(int i = 0; i < training_rows; i++) {
-            cout << i << endl;
             x_cipher = kernel_cipher[i];
 
             encryptor.encrypt(beta_plain, beta_cipher_1);

@@ -14,13 +14,13 @@ using namespace seal;
 int main()
 {
     // int poly_modulus_degree = 32768;
-    int poly_modulus_degree = 16384;
-    // int poly_modulus_degree = 8192;
+    // int poly_modulus_degree = 16384;
+    int poly_modulus_degree = 8192;
     EncryptionParameters params(scheme_type::ckks);
     params.set_poly_modulus_degree(poly_modulus_degree);
     cout << "MAX BIT COUNT: " << CoeffModulus::MaxBitCount(poly_modulus_degree) << endl;
-    params.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 35, 35, 35, 35, 35, 35, 35, 35, 35, 60}));
-    // params.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {40, 25, 25, 25, 25, 25, 40}));
+    // params.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 35, 35, 35, 35, 35, 35, 35, 35, 35, 60}));
+    params.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {40, 25, 25, 25, 25, 25, 40}));
     SEALContext context(params);
 
     print_parameters(context);
@@ -94,17 +94,16 @@ int main()
     CKKSEncoder ckks_encoder(context);
 
     // Create Scale
-    double scale = pow(2.0, 35);
-    // double scale = pow(2.0, 60);
+    // double scale = pow(2.0, 35);
+    double scale = pow(2.0, 25);
 
     // Time
     chrono::high_resolution_clock::time_point time_start, time_end;
     chrono::milliseconds time_diff;
 
     // Read File
-    // string filename = "pulsar_stars.csv";
-    // string filename = "./python/datasets/Heart-Disease-Machine-Learning/data.csv";
-    string filename = "./python/datasets/breast_cancer/data.csv";
+    // string filename = "./python/datasets/breast_cancer/data.csv";
+    string filename = "./python/datasets/make_circles.csv";
     vector<vector<string>> s_matrix = CSVtoMatrix(filename);
     vector<vector<double>> f_matrix = stringTodoubleMatrix(s_matrix);
     // random_shuffle(f_matrix.begin(), f_matrix.end());
@@ -117,7 +116,7 @@ int main()
 
     vector<vector<double>> features(total_rows, vector<double>(total_cols));
 
-    int training_rows = 364;
+    int training_rows = 400;
     int testing_rows = total_rows - training_rows;
     vector<vector<double>> training_x(training_rows, vector<double>(total_cols));
     vector<vector<double>> testing_x(testing_rows, vector<double>(total_cols));
@@ -152,16 +151,16 @@ int main()
     double poly_deg = 3;
     // double poly_deg = 7;
 
-    vector<double> coeffs = {0.50081, 0.08937, -0.00001, -0.00297};
+    vector<double> coeffs = {0.50014, 0.01404, -0.00000007, -0.000001};
     // vector<double> coeffs = {0.50054, 0.19688, -0.00014, -0.00544, 0.000005, 0.000075, -0.00000004, -0.0000003};
 
 
     // Parameters Settings
-    int col_A = 15;
+    int col_A = 1;
     int col_B = total_cols - col_A;
 
-    double learning_rate = 1;
-    int iter_times = 30;
+    double learning_rate = 0.001;
+    int iter_times = 20;
 
     vector<vector<double>> features_A(training_rows, vector<double>(col_A));
     vector<vector<double>> features_B(training_rows, vector<double>(col_B));
