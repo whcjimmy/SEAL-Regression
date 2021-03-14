@@ -393,15 +393,14 @@ int main()
         evaluator.add(kernel_A_D_cipher[i], kernel_B_D_cipher[i], kernel_diagonals_cipher[i]);
     }
     vector<Ciphertext> kernel_powers_cipher(poly_kernel_deg);
-    vector<Ciphertext> kernel_D_powers_cipher(poly_kernel_deg);
     for(int i = 0; i < training_rows; i++) {
         // original
         compute_all_powers(kernel_cipher[i], poly_kernel_deg, evaluator, relin_keys, kernel_powers_cipher);
         kernel_cipher[i] = kernel_powers_cipher[poly_kernel_deg];
 
         // diagonal
-        compute_all_powers(kernel_diagonals_cipher[i], poly_kernel_deg, evaluator, relin_keys, kernel_D_powers_cipher);
-        kernel_diagonals_cipher[i] = kernel_D_powers_cipher[poly_kernel_deg];
+        compute_all_powers(kernel_diagonals_cipher[i], poly_kernel_deg, evaluator, relin_keys, kernel_powers_cipher);
+        kernel_diagonals_cipher[i] = kernel_powers_cipher[poly_kernel_deg];
     }
     
     /*
@@ -466,11 +465,10 @@ int main()
     time_start = chrono::high_resolution_clock::now();
 
     double l2_reg_alpha = 2.0 * lambda / training_rows;
-    ckks_encoder.encode(l2_reg_alpha, scale, l2_reg_alpha_plain);
     
-
     for(int iter = 0; iter < iter_times; iter++) {
         cout << "iter " << iter << endl;
+        ckks_encoder.encode(l2_reg_alpha, scale, l2_reg_alpha_plain);
         ckks_encoder.encode(beta, scale, beta_plain);
 
 // #pragma omp parallel for
@@ -497,7 +495,7 @@ int main()
             for(int j = 0; j <= poly_deg; j++) {
                 alpha = coeffs[j] * pow(-1 * training_y[i], j + 1) / training_rows;
                 ckks_encoder.encode(alpha, scale, alpha_plain);
-                evaluator.mod_switch_to_inplace(alpha_plain, bk_powers_cipher[j].parms_id());
+                evaluator.mod_switch_to_inplace(alpha_plain, last_parms_id);
                 evaluator.multiply_plain_inplace(bk_powers_cipher[j], alpha_plain);
                 // evaluator.rescale_to_next_inplace(bk_powers_cipher[j]);
 
@@ -551,6 +549,10 @@ int main()
             if(tmp == testing_y[i]) accuracy += 1;
         }
         cout << "accuracy " << accuracy / testing_rows << endl;
+
+        time_end = chrono::high_resolution_clock::now();
+        time_diff = chrono::duration_cast<chrono::milliseconds>(time_end - time_start);
+        cout << training_rows << " total execution time :\t" << time_diff.count() << " milliseconds" << endl;
     }
 
     time_end = chrono::high_resolution_clock::now();
