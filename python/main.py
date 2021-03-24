@@ -9,11 +9,13 @@ import numpy as np
 
 # Load Datasets
 # dataset = read_data.read_lbw() # use Z-score Standardization
-# dataset = read_data.read_pulsar_stars() # use Z-score Standardization
-# dataset = read_data.read_banknote()
-# dataset = read_data.read_heart_disease()
-# dataset = read_data.read_load_breast_cancer()
-dataset = read_data.read_make_circles()
+
+dataset = read_data.read_uci_dataset('load_breast_cancer') # classification
+# dataset = read_data.read_uci_dataset('load_iris') # classification
+# dataset = read_data.read_uci_dataset('load_boston') # regression
+# dataset = read_data.read_uci_dataset('load_diabetes') # regression
+
+# dataset = read_data.read_make_circles()
 # dataset = read_data.read_make_moons()
 
 training_x = dataset['training_x']
@@ -21,17 +23,14 @@ training_y = dataset['training_y']
 testing_x = dataset['testing_x']
 testing_y = dataset['testing_y']
 
-
 #Original Load Weights
-weights_dict = util.read_weight('./poly_sigmoid_weights/weights_80.out')
+weights_dict = util.read_weight('./poly_sigmoid_weights/weights_20.out')
 for k in weights_dict.keys():
     weights_dict[k].reverse()
 
-
-'''
 # Logistic Regression
 print('---------- Logistic Regression ----------')
-iteration_times = 100
+iteration_times = 20
 learning_rate_list = [0.1, 0.01, 0.001]
 
 for learning_rate in learning_rate_list:
@@ -44,21 +43,20 @@ for learning_rate in learning_rate_list:
         print('Poly degree = ', deg,)
         W = train.train_model(False, dataset, learning_rate, iteration_times, 2,  weights = weights_dict[str(deg)])
         util.test_model(W, dataset)
-'''
 
 
 # KERNELS
 # Parameters Settings
 iteration_times = 100
 
-learning_rate_list = [0.1, 0.01]
-lamba_list = [0.1, 0.01, 0.001]
+learning_rate_list = [0.1, 0.5, 0.01]
+lamba_list = [0.1, 0.01]
 gamma_list = [1, 0.1]
 
 # kernel_type_list = ['linear', 'polynomial', 'rbf']
-kernel_type_list = ['polynomial']
+kernel_type_list = ['rbf']
 poly_deg = 3
-taylor_deg = 4
+taylor_deg = 2
 
 for learning_rate, gamma, lamba, kernel in list(itertools.product(learning_rate_list, gamma_list, lamba_list, kernel_type_list)):
     print('\n\n>>>>>   ', learning_rate, lamba, gamma, '   <<<<<')

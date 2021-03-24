@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
-from sklearn.datasets import load_breast_cancer
+from sklearn.datasets import load_breast_cancer, load_boston, load_diabetes, load_iris
+import sklearn.datasets as sklearn_datasets
 from sklearn.datasets import make_circles, make_moons
 
 
@@ -31,64 +32,27 @@ def read_lbw():
         np.random.shuffle(ff)
     samples = np.delete(ff, [0, 1], axis = 1)
     labels = np.array([1 if x == 1 else -1 for x in ff[:, 1]])
-    data['training_x'] = samples
-    data['training_y'] = labels
-    data['testing_x'] = samples
-    data['testing_y'] = labels
+    training_x, testing_x, training_y, testing_y = train_test_split(samples, labels, test_size = 0.2)
+    dataset = package_dataset(training_x, training_y, testing_x, testing_y)
 
-    return data
+    return dataset
 
-
-def read_banknote():
-    data = {}
-    with open('./datasets/banknote/data_banknote_authentication.txt') as f:
-        ff = [x.rstrip() for x in f.readlines()]
-        ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
-        ff = np.array(ff)
-        np.random.shuffle(ff)
-    samples = ff[:, :-1]
-    labels = np.array([1 if x == 1 else -1 for x in ff[:,-1]])
-    data['training_x'] = samples[:1100, :]
-    data['training_y'] = labels[:1100]
-    data['testing_x'] = samples[1100:, :]
-    data['testing_y'] = labels[1100:]
-
-    return data
-
-
-def read_heart_disease():
-    data = {}
-    with open('./datasets/Heart-Disease-Machine-Learning/data.csv') as f:
-        ff = [x.rstrip() for x in f.readlines()]
-        ff = [np.fromstring(x, dtype='float', sep=',') for x in ff]
-        ff = np.array(ff)
-        # np.random.shuffle(ff)
-    samples = data_preprocess(ff[:, :-1], 2)
-    # samples = ff[:, :-1]
-    labels = np.array([1 if x == 1 else -1 for x in ff[:,-1]])
-
-    data['training_x'] = samples[: 736]
-    data['testing_x'] = samples[736:]
-    data['training_y'] = labels[: 736]
-    data['testing_y'] = labels[736:]
-
-    return data
-
-
-def read_load_breast_cancer():
-    data = {}
-    dataset = load_breast_cancer()
+def read_uci_dataset(dataset_name):
+    dataset = getattr(sklearn_datasets, dataset_name)()
     samples = dataset.data
     labels = dataset.target
-    samples = data_preprocess(samples, 2)
-    labels = np.array([1 if x == 1 else -1 for x in labels])
 
-    data['training_x'] = samples[:364, :]
-    data['training_y'] = labels[:364]
-    data['testing_x'] = samples[364:, :]
-    data['testing_y'] = labels[364:]
+    samples = data_preprocess(samples, 'StandardScaler')
+    labels = switch_labels(labels)
 
-    return data
+    # training_x, testing_x, training_y, testing_y = train_test_split(samples, labels, test_size = 0.2)
+    training_x = samples
+    training_y = labels
+    testing_x = samples
+    testing_y = labels
+    dataset = package_dataset(training_x, training_y, testing_x, testing_y)
+
+    return dataset
 
 
 def read_make_circles():
@@ -100,7 +64,6 @@ def read_make_circles():
 
     samples = np.concatenate((samples, np.array(labels).reshape(-1, 1)), axis = 1)
     pd.DataFrame(samples).to_csv('./datasets/make_circles.csv', header = False, index = False)
-
 
     return dataset
 
