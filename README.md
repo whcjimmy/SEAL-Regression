@@ -1,9 +1,14 @@
-# SEAL-FYP-Logistic-Regression
-My final year project using Microsoft SEAL. The purpose of this project is to **Create Functionalities for Matrices and Vectors** and **Build a Logistic Regression model using Fully Homomorphic Encryption.**
+# SEAL-Regression
 
-The code also contains some benchmark tests for matrix and vector operations as well as some examples based on the original examples already provided in the SEAL library. 
+This repo is based on MarwanNour's final year project (https://github.com/MarwanNour/SEAL-FYP-Logistic-Regression).
 
 *Note: This repo supports SEAL Version 3.6.1*
+
+** The rest of content is from ManwanNour. **
+
+The purpose of this project is to **Create Functionalities for Matrices and Vectors** and **Build a Logistic Regression model using Fully Homomorphic Encryption.**
+
+The code also contains some benchmark tests for matrix and vector operations as well as some examples based on the original examples already provided in the SEAL library. 
 
 *To view the graphs, you will need to have GNUPlot and Python 3 installed on your machine*
 
